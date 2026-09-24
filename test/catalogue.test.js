@@ -11,6 +11,7 @@ import { fetchAnalVidsScenes as fetchMamboPervScenes, parseListing as parseMambo
 import { studios } from "../src/studios/index.js";
 import { sync } from "../src/sync.js";
 import { fetchTushyScenes, parseTpdbScene, studio as tushy } from "../src/studios/tushy.js";
+import { fetchBangOriginalsScenes, parseListing as parseBangListing, parseVideoPage as parseBangVideoPage, studio as bangOriginals } from "../src/studios/bang-originals.js";
 
 const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
 const scene = (id, releaseDate = "2026-09-20") => ({ sourceSceneId: id, title: `Scene ${id}`, releaseDate, performers: [], thumbnailUrl: "", releaseUrl: `https://source/${id}`, source: "Test", provenance: { source: "Test", sourceUrl: "https://source", recordUrl: `https://source/${id}`, sourceSceneId: id } });
@@ -205,4 +206,36 @@ test("Tushy reports missing credentials, HTTP errors, and malformed responses wi
     return { ok: true, json: async () => (malformedCall === 1 ? { data: [{ id: 77, name: "Tushy" }] } : { nope: [] }) };
   } }), /invalid response/);
   assert.equal(studios.find(({ id }) => id === "tushy"), tushy);
+});
+
+test("parses Bang! Originals listing and video structured metadata", async () => {
+  const listingHtml = await readFile(new URL("../fixtures/bang-originals/listing-page.html", import.meta.url), "utf8");
+  const [listing] = parseBangListing(listingHtml);
+  assert.equal(listing.releaseUrl, "https://www.bang.com/video/ajuEIS5bRIK_BcO-/luna-colombiana-gives-a-whole-new-meaning-to-hardcore-anal");
+  const pageHtml = await readFile(new URL("../fixtures/bang-originals/video-page.html", import.meta.url), "utf8");
+  const parsed = parseBangVideoPage(pageHtml, listing.releaseUrl);
+  assert.equal(parsed.sourceSceneId, "ajuEIS5bRIK_BcO-");
+  assert.equal(parsed.releaseDate, "2026-09-09");
+  assert.equal(parsed.title, "Luna Colombiana Gives A Whole New Meaning To Hardcore Anal");
+  assert.deepEqual(parsed.performers, ["Luna Colombiana", "Zac Wild"]);
+  assert.match(parsed.thumbnailUrl, /62354\/285467\.jpg/);
+  assert.equal(studios.find(({ id }) => id === "bang-originals"), bangOriginals);
+});
+
+test("Bang! Originals follows pagination, imports recent videos, and confirms an empty window", async () => {
+  const listingHtml = await readFile(new URL("../fixtures/bang-originals/listing-page.html", import.meta.url), "utf8");
+  const page2 = listingHtml.replace(/<link rel="next" href="[^"]+">/, "");
+  const videoHtml = await readFile(new URL("../fixtures/bang-originals/video-page.html", import.meta.url), "utf8");
+  const urls = [];
+  const result = await fetchBangOriginalsScenes({ now: new Date("2026-09-24T12:00:00Z"), fetchImpl: async (url) => {
+    urls.push(String(url));
+    const body = String(url).includes("page=2") ? page2 : String(url).includes("/video/") ? videoHtml : listingHtml;
+    return { ok: true, text: async () => body };
+  } });
+  assert.ok(urls.some((url) => url.includes("page=2")));
+  assert.equal(result.scenes.length, 5);
+  assert.ok(result.scenes.some(({ sourceSceneId }) => sourceSceneId === "ajuEIS5bRIK_BcO-"));
+  assert.equal(result.verifiedEmpty, false);
+  const empty = await fetchBangOriginalsScenes({ now: new Date("2027-01-01T12:00:00Z"), fetchImpl: async (url) => ({ ok: true, text: async () => String(url).includes("/video/") ? videoHtml : listingHtml }) });
+  assert.deepEqual(empty, { scenes: [], verifiedEmpty: true });
 });
