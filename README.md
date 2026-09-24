@@ -39,6 +39,14 @@ Open <http://localhost:3000>. `npm run sync` writes `data/catalogue.json`; `LISZ
 
 Fetching is server-side. The [watchlist mockups](docs/mockups/watchlist.html) are illustrative and contain no live scene data.
 
+## Eporner links with Lustpress
+
+Lustpress is pinned as a Git submodule at `vendor/lustpress`. Run `git submodule update --init --recursive` after cloning Liszt. To update it deliberately, run `git -C vendor/lustpress fetch origin`, check the upstream changes, check out the chosen commit inside the submodule, then commit Liszt's changed submodule pointer. Lustpress requires Bun 1.4.2 or newer.
+
+Set `LUSTPRESS_URL` to a self-hosted Lustpress API, such as `http://127.0.0.1:3001`, before `npm run sync` or `npm start`. Without it, Eporner enrichment is disabled. The public Lustpress API was discontinued, so a self-hosted instance is required. `npm run sync` searches Eporner's official video API by performer name and distinctive title words, then asks Lustpress to verify promising video pages. Lustpress's own Eporner search endpoint reads tag pages, so it is not used for scene discovery. Browser clients never call either API. A scene gets an `epornerUrl` only when the Eporner title closely matches the release title, a named performer appears in Eporner's title or keywords, and the result is unambiguous. Unverified scenes keep their source link without an Eporner link. Search or Lustpress outages cannot discard a studio's catalogue.
+
+The repository's `Dockerfile` builds Lustpress from the pinned submodule and runs it with Liszt in one container. The start script binds Lustpress to internal port 3001 and Liszt to Render's `PORT`. `render.yaml` describes a single Docker web service on the free plan. Render clones public Git submodules during builds. The existing `liszt` Render service uses the Node runtime, which Render cannot change to Docker in place; deploy this image as a new service, verify it, then switch traffic when ready. The local catalogue is bundled into the image; updates written by Refresh data are lost on a fresh deploy or instance restart unless `LISZT_DATA_PATH` points to persistent storage.
+
 ## Possible next steps
 
 A future dashboard flow could accept a studio name or website URL and add it to the watchlist. Studios with unusual sources may still need dedicated adapters. Studio discovery, browser-based ingestion, and checks for scenes already on disk are not implemented on the current branch.

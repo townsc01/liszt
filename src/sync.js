@@ -1,12 +1,13 @@
 import { fileURLToPath } from "node:url";
 import { validateResult, withinRollingWindow } from "./catalogue.js";
+import { createEpornerLookup, enrichEpornerLinks } from "./eporner.js";
 import { studios as registeredStudios } from "./studios/index.js";
 import { readStore, writeStore } from "./store.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outputPaths = process.env.LISZT_DATA_PATH ? [process.env.LISZT_DATA_PATH] : [`${root}/data/catalogue.json`];
 
-export async function sync({ now = new Date(), fetchImpl = fetch, paths = outputPaths, adapters = registeredStudios } = {}) {
+export async function sync({ now = new Date(), fetchImpl = fetch, paths = outputPaths, adapters = registeredStudios, epornerLookup = createEpornerLookup({ baseUrl: process.env.LUSTPRESS_URL, fetchImpl }) } = {}) {
   const previous = await readStore(paths[0]);
   const priorScenes = previous.scenes || [];
   const priorStatuses = new Map((previous.studios || []).map((status) => [status.id, status]));
@@ -29,7 +30,8 @@ export async function sync({ now = new Date(), fetchImpl = fetch, paths = output
       return { scenes, status: { id: adapter.id, name: adapter.name, authority: adapter.authority, lastSuccessfulRefresh: priorStatuses.get(adapter.id)?.lastSuccessfulRefresh || previous.lastChecked || null, error: error.message } };
     }
   }));
-  const scenes = results.flatMap(({ scenes }) => scenes).sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+  const refreshedScenes = results.flatMap(({ scenes }) => scenes).sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+  const scenes = await enrichEpornerLinks(refreshedScenes, priorScenes, epornerLookup);
   const catalogue = { lastChecked: now.toISOString(), studios: results.map(({ status }) => status), scenes };
   await Promise.all(paths.map((path) => writeStore(path, catalogue)));
   return catalogue;
