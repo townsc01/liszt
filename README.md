@@ -90,8 +90,9 @@ Then open <http://localhost:3000>. Set `PORT` or `LISZT_DATA_PATH` to override t
 The dashboard’s **Refresh data** button runs every registered source adapter immediately
 and updates the ledger when the refresh finishes. Concurrent requests share the same sync,
 so repeated clicks cannot start overlapping source fetches. Set `FLARESOLVERR_URL` to an
-existing FlareSolverr service's `/v1` endpoint if Tushy returns HTTP 403. Liszt does not
-start or install FlareSolverr.
+existing FlareSolverr service's `/v1` endpoint to retry HTTP 403 responses from studio
+catalogue pages through FlareSolverr. Normal requests still go directly to the source;
+Liszt does not start or install FlareSolverr.
 
 The sync command runs every registered studio independently and writes the rolling
 90-day catalogue to `data/catalogue.json`. Render serves the app and catalogue API;
