@@ -1,6 +1,6 @@
 # Liszt
 
-Liszt is a personal project for building a reliable watchlist of recently released studio scenes. The first live version tracks Lancelot Styles Evolution.
+Liszt is a personal project for building a reliable watchlist of recently released studio scenes. The live catalogue tracks Lancelot Styles Evolution and Mambo Perv.
 
 For this project, the [Lancelot Styles Evolution listing on AnalVids](https://www.analvids.com/studios/lancelotstylesevolution) and its linked scene pages are the **authoritative catalogue**. Liszt uses their release information as the source of truth. AnalVids is the authority for this watchlist even though it is a third-party site, rather than the studio's own website.
 
@@ -22,6 +22,15 @@ The authority is a per-studio editorial decision, not a system-wide assumption. 
 Lancelot Styles Evolution, the AnalVids studio listing and linked scene pages are the
 authoritative catalogue. AnalVids is not merely a discovery source. TPDB is not
 integrated.
+
+The same decision applies specifically to **Mambo Perv**: Liszt treats the
+[AnalVids Mambo Perv archive](https://www.analvids.com/studios/mambo-perv), including
+its dated monthly listings and linked records, as the authoritative release catalogue
+for this watchlist—not as a discovery source. The archive supplies the stable record
+IDs, release dates, studio attribution, performers, and images that Liszt publishes;
+no second source is used to infer or replace release dates. This is an explicit Liszt
+editorial choice about catalogue provenance, not a claim that AnalVids is operated by
+Mambo Perv.
 
 Each normalised scene must contain `sourceSceneId`, `title`, `releaseDate`,
 `performers`, `thumbnailUrl`, `releaseUrl`, `source`, and `provenance`. Provenance
@@ -52,7 +61,7 @@ other studios can still update.
 
 ## First milestone
 
-Show one canonical, rolling 90-day list of Lancelot Styles Evolution releases:
+Show one canonical, rolling 90-day list of registered studio releases:
 
 1. Poll the AnalVids listing's relevant month pages each day and follow their scene pages.
 2. Record each scene's title, release date, studio, female performers, thumbnail, and link to its AnalVids scene page.
@@ -87,4 +96,4 @@ The sync command runs every registered studio independently and writes the rolli
 
 ## Status
 
-Live AnalVids catalogue adapter and daily scheduled publishing are implemented. TPDB integration and on-disk presence checks are future work.
+Live AnalVids catalogue adapters for Lancelot Styles Evolution and Mambo Perv and daily scheduled publishing are implemented. TPDB integration and on-disk presence checks are future work.
