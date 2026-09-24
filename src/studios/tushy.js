@@ -56,7 +56,7 @@ async function requestJson(url, fetchImpl, apiKey) {
   const response = await fetchImpl(url, {
     headers: { authorization: `Bearer ${apiKey}`, accept: "application/json" },
   });
-  if (!response.ok) throw new Error(`TPDB request failed with HTTP ${response.status}`);
+  if (!response.ok) throw Object.assign(new Error(`TPDB request failed with HTTP ${response.status}`), { status: response.status });
   const result = await response.json();
   if (!result || !Array.isArray(result.data)) throw new Error("TPDB returned an invalid response");
   return result.data;
@@ -76,12 +76,21 @@ async function requestPerformer(url, fetchImpl, apiKey) {
 async function findFemalePerformer(name, fetchImpl, apiKey) {
   const url = new URL(`${API_BASE_URL}/performers`);
   url.searchParams.set("q", name);
-  url.searchParams.set("gender", "FEMALE");
-  url.searchParams.set("per_page", String(PER_PAGE));
-  const candidates = await requestJson(url, fetchImpl, apiKey);
   const target = name.trim().toLowerCase();
+  try {
+    url.searchParams.set("gender", "FEMALE");
+    const filtered = await requestJson(url, fetchImpl, apiKey);
+    if (filtered.some((candidate) => [candidate.name, candidate.full_name]
+      .some((candidateName) => candidateName?.trim().toLowerCase() === target))) return true;
+  } catch (error) {
+    if (error.status !== 422) throw error;
+  }
+
+  url.searchParams.delete("gender");
+  const candidates = await requestJson(url, fetchImpl, apiKey);
   return candidates.some((candidate) => [candidate.name, candidate.full_name]
-    .some((candidateName) => candidateName?.trim().toLowerCase() === target));
+    .some((candidateName) => candidateName?.trim().toLowerCase() === target)
+    && String(candidate.extras?.gender ?? candidate.gender ?? "").trim().toLowerCase() === "female");
 }
 
 async function resolvePerformerGenders(records, fetchImpl, apiKey) {

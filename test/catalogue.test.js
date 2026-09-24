@@ -167,12 +167,13 @@ test("Tushy polls all TPDB pages with bearer auth and confirms empty results", a
     const data = requestUrl.pathname === "/sites"
       ? [{ id: 77, name: "Tushy", short_name: "tushy" }]
       : requestUrl.pathname === "/performers"
-        ? [{ id: "female-search-result", name: "Name Only", extras: { gender: "FEMALE" } }]
+        ? requestUrl.searchParams.has("gender") ? null : [{ id: "female-search-result", name: "Name Only", extras: { gender: "FEMALE" } }]
       : requestUrl.pathname.startsWith("/performers/")
         ? { id: requestUrl.pathname.split("/").at(-1), extras: { gender: requestUrl.pathname.endsWith("female") ? "Female" : "Male" } }
       : Number(requestUrl.searchParams.get("page")) === 1
         ? Array.from({ length: 100 }, (_, index) => ({ id: `scene-${index}`, title: `Scene ${index}`, date: "2026-09-20", ...(index === 0 ? { performers: [{ id: "female", name: "Female Performer" }, { name: "Name Only" }] } : {}) }))
         : [{ id: "last-scene", title: "Last scene", date: "2026-09-21", performers: [{ id: "male", name: "Male Performer" }] }];
+    if (requestUrl.pathname === "/performers" && requestUrl.searchParams.has("gender")) return { ok: false, status: 422 };
     return { ok: true, status: 200, json: async () => ({ data }) };
   } });
   const sceneRequests = requests.filter(({ url }) => new URL(url).pathname === "/scenes");
