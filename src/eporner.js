@@ -122,10 +122,6 @@ export function createEpornerLookup({ baseUrl, fetchImpl = fetch } = {}) {
 }
 
 export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concurrency = 4, now = new Date() } = {}) {
-  if (!lookup) return scenes.map((scene) => {
-    const override = epornerOverrides.get(scene.id);
-    return override ? { ...scene, epornerUrls: override.filter(validEpornerUrl) } : scene;
-  });
   const previous = new Map(previousScenes.map((scene) => [scene.id, scene]));
   const output = [...scenes];
   let next = 0;
@@ -143,6 +139,11 @@ export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concu
         JSON.stringify(prior.performers) === JSON.stringify(scene.performers);
       const priorUrls = unchanged ? (prior.epornerUrls || (prior.epornerUrl ? [prior.epornerUrl] : [])).filter(validEpornerUrl) : [];
       const checkedAt = unchanged ? Date.parse(prior.epornerCheckedAt) : NaN;
+      if (!lookup) {
+        output[index] = { ...scene, ...(priorUrls.length ? { epornerUrls: priorUrls } : {}),
+          ...(Number.isFinite(checkedAt) ? { epornerCheckedAt: prior.epornerCheckedAt } : {}) };
+        continue;
+      }
       if (Number.isFinite(checkedAt) && now.getTime() - checkedAt < 86_400_000 && now.getTime() >= checkedAt) {
         output[index] = { ...scene, ...(priorUrls.length ? { epornerUrls: priorUrls } : {}), epornerCheckedAt: prior.epornerCheckedAt };
         continue;
