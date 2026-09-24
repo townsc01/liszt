@@ -5,9 +5,16 @@
   "description": "A small, dependable release watchlist prototype",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node scripts/start-native.mjs",
+    "postinstall": "npm run build:lustpress",
+    "build:lustpress": "cd vendor/lustpress && ../../node_modules/.bin/bun install --frozen-lockfile && ../../node_modules/.bin/bun run build",
     "test": "node --test test/*.test.js",
     "sync": "node src/sync.js"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bun": "1.4.2"
+  }
 }

@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: liszt-eporner
-    runtime: docker
+    name: liszt
+    runtime: node
     plan: free
     region: singapore
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    buildCommand: yarn
+    startCommand: yarn start
     healthCheckPath: /
-    autoDeployTrigger: off
+    autoDeployTrigger: commit

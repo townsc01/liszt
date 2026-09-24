@@ -5,6 +5,7 @@ import { renderSceneLinks } from "../public/scene-links.js";
 import { sync } from "../src/sync.js";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 
 const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Double Anal Debut", releaseDate: "2026-09-20", performers: ["Lana Wills"], releaseUrl: "https://source.example/1" };
 const url = "https://www.eporner.com/video-AbC123xyZ90/lana-wills-double-anal-debut/";
@@ -84,6 +85,26 @@ test("existing verified links survive refresh and unverified rows show only Sour
   const [negative] = await enrichEpornerLinks([scene], [{ ...scene, epornerCheckedAt: checkedAt }], async () => { throw new Error("negative result should be cached"); });
   assert.equal(negative.epornerCheckedAt, checkedAt);
   assert.equal(negative.epornerUrls, undefined);
+});
+
+test("refresh without a Lustpress URL retains existing verified links", async () => {
+  const prior = { ...scene, epornerUrls: [url], epornerCheckedAt: "2026-09-23T00:00:00.000Z" };
+  const [linked] = await enrichEpornerLinks([scene], [prior], null);
+  assert.deepEqual(linked.epornerUrls, [url]);
+  assert.equal(linked.epornerCheckedAt, prior.epornerCheckedAt);
+  const [changed] = await enrichEpornerLinks([{ ...scene, title: "A different scene" }], [prior], null);
+  assert.equal(changed.epornerUrls, undefined);
+});
+
+test("a successful catalogue refresh retains verified links without Lustpress", async () => {
+  const path = join(tmpdir(), `liszt-eporner-retain-${process.pid}.json`);
+  const prior = { ...scene, epornerUrls: [url], epornerCheckedAt: "2026-09-23T00:00:00.000Z" };
+  await writeFile(path, JSON.stringify({ scenes: [prior], studios: [] }));
+  const adapter = { id: "studio", name: "Studio", authority: { name: "Test", url: "https://source.example" }, fetchScenes: async () => ({ scenes: [{ ...scene, id: undefined }], verifiedEmpty: false }) };
+  const catalogue = await sync({ now: new Date("2026-09-24T12:00:00Z"), paths: [path], adapters: [adapter], epornerLookup: null });
+  assert.equal(catalogue.studios[0].error, null);
+  assert.deepEqual(catalogue.scenes[0].epornerUrls, [url]);
+  assert.equal(catalogue.scenes[0].epornerCheckedAt, prior.epornerCheckedAt);
 });
 
 test("the user-confirmed Naty Heat scene has both Eporner uploads", async () => {
