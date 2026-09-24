@@ -18,6 +18,11 @@ function getSceneId(record) {
   return record.id ?? record.uuid ?? record._id ?? record.external_id;
 }
 
+function isMaleGender(gender) {
+  return ["male", "transgender male", "transgender_male"].includes(String(gender ?? "")
+    .trim().toLowerCase().replace(/-/g, " "));
+}
+
 export function parseTpdbScene(record, performerGenders = new Map()) {
   const sourceSceneId = getSceneId(record);
   if (!sourceSceneId || !record.date || !record.title) {
@@ -29,7 +34,7 @@ export function parseTpdbScene(record, performerGenders = new Map()) {
         const identifier = performer?.id ?? performer?.uuid ?? performer?._id;
         const name = performer?.name?.trim().toLowerCase();
         const gender = performer?.extras?.gender ?? performer?.gender ?? performerGenders.get(String(identifier)) ?? performerGenders.get(name) ?? "";
-        return String(gender).trim().toLowerCase() === "female";
+        return !isMaleGender(gender);
       })
       .map((performer) => performer?.name?.trim())
       .filter(Boolean)
@@ -73,24 +78,25 @@ async function requestPerformer(url, fetchImpl, apiKey) {
   return result.data;
 }
 
-async function findFemalePerformer(name, fetchImpl, apiKey) {
+async function findPerformerGender(name, fetchImpl, apiKey) {
   const url = new URL(`${API_BASE_URL}/performers`);
   url.searchParams.set("q", name);
   const target = name.trim().toLowerCase();
   try {
     url.searchParams.set("gender", "FEMALE");
     const filtered = await requestJson(url, fetchImpl, apiKey);
-    if (filtered.some((candidate) => [candidate.name, candidate.full_name]
-      .some((candidateName) => candidateName?.trim().toLowerCase() === target))) return true;
+    const female = filtered.find((candidate) => [candidate.name, candidate.full_name]
+      .some((candidateName) => candidateName?.trim().toLowerCase() === target));
+    if (female) return female.extras?.gender ?? female.gender ?? "Female";
   } catch (error) {
     if (error.status !== 422) throw error;
   }
 
   url.searchParams.delete("gender");
   const candidates = await requestJson(url, fetchImpl, apiKey);
-  return candidates.some((candidate) => [candidate.name, candidate.full_name]
-    .some((candidateName) => candidateName?.trim().toLowerCase() === target)
-    && String(candidate.extras?.gender ?? candidate.gender ?? "").trim().toLowerCase() === "female");
+  const performer = candidates.find((candidate) => [candidate.name, candidate.full_name]
+    .some((candidateName) => candidateName?.trim().toLowerCase() === target));
+  return performer?.extras?.gender ?? performer?.gender ?? "";
 }
 
 async function resolvePerformerGenders(records, fetchImpl, apiKey) {
@@ -127,12 +133,11 @@ async function resolvePerformerGenders(records, fetchImpl, apiKey) {
       if (gender) {
         if (identifier) performers.set(identifier, gender);
         if (name) performers.set(name, gender);
-      } else if (name && await findFemalePerformer(name, fetchImpl, apiKey)) {
-        if (identifier) performers.set(identifier, "Female");
-        performers.set(name, "Female");
       } else {
-        if (identifier) performers.set(identifier, "Unknown");
-        if (name) performers.set(name, "Unknown");
+        const resolvedGender = name ? await findPerformerGender(name, fetchImpl, apiKey) : "";
+        const effectiveGender = resolvedGender || "Unknown";
+        if (identifier) performers.set(identifier, effectiveGender);
+        if (name) performers.set(name, effectiveGender);
       }
     }
   }));
