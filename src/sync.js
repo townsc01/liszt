@@ -4,7 +4,7 @@ import { studios as registeredStudios } from "./studios/index.js";
 import { readStore, writeStore } from "./store.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const outputPaths = process.env.LISZT_DATA_PATH ? [process.env.LISZT_DATA_PATH] : [`${root}/data/catalogue.json`, `${root}/docs/catalogue.json`];
+const outputPaths = process.env.LISZT_DATA_PATH ? [process.env.LISZT_DATA_PATH] : [`${root}/data/catalogue.json`];
 
 export async function sync({ now = new Date(), fetchImpl = fetch, paths = outputPaths, adapters = registeredStudios } = {}) {
   const previous = await readStore(paths[0]);

@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createLisztServer } from "../src/server.js";
 
 async function withServer(options, callback) {
@@ -25,6 +28,25 @@ test("POST /api/refresh syncs sources and returns the refreshed catalogue", asyn
     assert.deepEqual(await response.json(), catalogue);
   });
   assert.equal(calls, 1);
+});
+
+test("server serves the dashboard and the catalogue API", async () => {
+  const catalogue = { lastChecked: "2026-09-24T12:00:00.000Z", studios: [], scenes: [] };
+  const directory = await mkdtemp(join(tmpdir(), "liszt-server-"));
+  const path = join(directory, "catalogue.json");
+  try {
+    await writeFile(path, JSON.stringify(catalogue));
+    await withServer({ cataloguePath: path }, async (origin) => {
+      const page = await fetch(origin);
+      assert.equal(page.status, 200);
+      assert.match(await page.text(), /Liszt — Recent releases/);
+      const response = await fetch(`${origin}/api/scenes`);
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), catalogue);
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("manual refresh rejects non-POST requests", async () => {

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { validateResult, withinRollingWindow } from "../src/catalogue.js";
 import { parseListing, parseScenePage, studio } from "../src/studios/lancelot-styles-evolution.js";
@@ -48,6 +50,25 @@ test("sync exposes dashboard shape and lets studios succeed independently", asyn
   assert.equal(result.studios.find(({ id }) => id === "bad").error, "source down");
   assert.equal(result.studios.find(({ id }) => id === "bad").lastSuccessfulRefresh, "2026-09-20T00:00:00Z");
   assert.deepEqual(Object.keys(result).sort(), ["lastChecked", "scenes", "studios"]);
+});
+
+test("sync defaults to the local catalogue only and accepts explicit output paths", async () => {
+  const source = await readFile(new URL("../src/sync.js", import.meta.url), "utf8");
+  assert.match(source, /:\s*\[`\$\{root\}\/data\/catalogue\.json`\]/);
+  assert.doesNotMatch(source, /docs\/catalogue\.json/);
+
+  const path = join(tmpdir(), `liszt-${process.pid}-explicit-output.json`);
+  const result = await sync({ paths: [path], adapters: [adapter("explicit", async () => ({ scenes: [scene("out")], verifiedEmpty: false }))] });
+  assert.deepEqual(JSON.parse(await readFile(path, "utf8")), result);
+
+  const envPath = join(tmpdir(), `liszt-${process.pid}-env-output.json`);
+  const run = spawnSync(process.execPath, ["--input-type=module", "-e", "import { sync } from './src/sync.js'; await sync({ adapters: [] });"], {
+    cwd: fileURLToPath(new URL("..", import.meta.url)),
+    env: { ...process.env, LISZT_DATA_PATH: envPath },
+    encoding: "utf8",
+  });
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(JSON.parse(await readFile(envPath, "utf8")).lastChecked);
 });
 
 test("failed studios retain only last-good records still inside the rolling window", async () => {
