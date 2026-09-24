@@ -99,3 +99,16 @@ test("a failed Mambo Perv fetch preserves its last good catalogue", async () => 
   assert.equal(result.studios[0].lastSuccessfulRefresh, "2026-09-21T00:00:00Z");
   assert.equal(result.studios[0].error, "source unavailable");
 });
+
+test("AnalVids retries transient network failures and identifies exhausted URL", async () => {
+  const { fetchAnalVidsText } = await import("../src/studios/analvids-fetch.js");
+  let calls = 0;
+  const url = "https://www.analvids.com/watch/123/example";
+  const text = await fetchAnalVidsText(url, async () => {
+    if (++calls < 3) throw new TypeError("fetch failed");
+    return { ok: true, text: async () => "scene" };
+  }, { delay: async () => {} });
+  assert.equal(text, "scene");
+  assert.equal(calls, 3);
+  await assert.rejects(fetchAnalVidsText(url, async () => { throw new TypeError("fetch failed"); }, { delay: async () => {} }), /fetch failed for https:\/\/www\.analvids\.com\/watch\/123\/example after 3 attempts/);
+});
