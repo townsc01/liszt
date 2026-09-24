@@ -36,6 +36,11 @@ async function showScene(scene, sourceUrl) {
 
   const player = document.createElement("div");
   player.className = "watch-player";
+  const showPlayerMessage = (message) => {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = message;
+    player.replaceChildren(paragraph);
+  };
   const loading = document.createElement("p");
   loading.textContent = "Loading video…";
   player.append(loading);
@@ -71,10 +76,15 @@ async function showScene(scene, sourceUrl) {
     video.preload = "metadata";
     video.src = stream.href;
     video.setAttribute("aria-label", `Video player for ${scene.title}`);
-    video.addEventListener("error", () => { player.textContent = "Video could not play here. Open it on Sxyprn using the link below."; });
+    const timeout = setTimeout(() => showPlayerMessage("Video did not load here. Open it on Sxyprn using the link below."), 30_000);
+    video.addEventListener("loadedmetadata", () => clearTimeout(timeout), { once: true });
+    video.addEventListener("error", () => {
+      clearTimeout(timeout);
+      showPlayerMessage("Video could not play here. Open it on Sxyprn using the link below.");
+    }, { once: true });
     player.replaceChildren(video);
   } catch {
-    player.textContent = "Video could not load here. Open it on Sxyprn using the link below.";
+    showPlayerMessage("Video could not load here. Open it on Sxyprn using the link below.");
   }
 }
 
