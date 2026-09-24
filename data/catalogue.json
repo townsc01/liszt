@@ -1,0 +1,56 @@
+{
+  "lastChecked": "2026-09-24T09:08:12.778Z",
+  "scenes": [
+    {
+      "id": "lancelot styles evolution|2026-09-22|the green room",
+      "title": "The Green Room",
+      "releaseDate": "2026-09-22",
+      "studio": "Lancelot Styles Evolution",
+      "performers": [
+        "Mara Vale",
+        "Iris Bell",
+        "Theo Hart"
+      ],
+      "thumbnailUrl": "",
+      "releaseUrl": "https://example.com/releases/the-green-room",
+      "source": "studio"
+    },
+    {
+      "id": "lancelot styles evolution|2026-09-12|late checkout",
+      "title": "Late Checkout",
+      "releaseDate": "2026-09-12",
+      "studio": "Lancelot Styles Evolution",
+      "performers": [
+        "Nora Lane"
+      ],
+      "thumbnailUrl": "",
+      "releaseUrl": "https://example.com/releases/late-checkout",
+      "source": "studio"
+    },
+    {
+      "id": "lancelot styles evolution|2026-08-28|september light",
+      "title": "September Light",
+      "releaseDate": "2026-08-28",
+      "studio": "Lancelot Styles Evolution",
+      "performers": [
+        "Ella North",
+        "Mara Vale"
+      ],
+      "thumbnailUrl": "",
+      "releaseUrl": "https://example.com/releases/september-light",
+      "source": "studio"
+    },
+    {
+      "id": "lancelot styles evolution|2026-07-18|after hours",
+      "title": "After Hours",
+      "releaseDate": "2026-07-18",
+      "studio": "Lancelot Styles Evolution",
+      "performers": [
+        "Iris Bell"
+      ],
+      "thumbnailUrl": "",
+      "releaseUrl": "https://example.com/releases/after-hours",
+      "source": "studio"
+    }
+  ]
+}

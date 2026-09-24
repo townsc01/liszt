@@ -27,6 +27,20 @@ To view them, download or clone the repository and open `docs/mockups/watchlist.
 
 Liszt starts with the watchlist. Later stages may add more studios and check whether listed scenes are already present on disk. Acquisition and other automation may follow gradually, once the scene list is dependable.
 
+## Run the prototype
+
+The prototype is a dependency-free Node.js application. It demonstrates the release ledger, search and sorting, source reconciliation, and a rolling 90-day window with intentionally fictional fixture records.
+
+```sh
+npm test
+npm run sync
+npm start
+```
+
+Then open <http://localhost:3000>. Set `PORT` or `LISZT_DATA_PATH` to override the defaults.
+
+The sync command currently reads `fixtures/studio.json` and `fixtures/tpdb.json`. This makes the pipeline repeatable while the supplied listing's authority and the upstream API access are verified. A production source adapter and scheduler are the next integration step; the displayed data is not presented as a real studio catalogue.
+
 ## Status
 
-Planning. The supplied listing's contents and authority have not yet been verified. The implementation and setup instructions have yet to be chosen; this README describes the intended first version rather than a working release.
+First local prototype. Catalogue discovery, live adapters, credentials, and scheduled polling remain to be implemented.
