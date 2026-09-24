@@ -1,53 +1,61 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTitle, reconcile, withinRollingWindow } from "../src/catalogue.js";
-import { parseListing, parseScenePage } from "../src/analvids.js";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { validateResult, withinRollingWindow } from "../src/catalogue.js";
+import { parseListing, parseScenePage, studio } from "../src/studios/lancelot-styles-evolution.js";
+import { sync } from "../src/sync.js";
 
-const base = { title: "Café Scene", releaseDate: "2026-09-01", studio: "Example Studio", performers: [], thumbnailUrl: "", releaseUrl: "" };
+const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
+const scene = (id, releaseDate = "2026-09-20") => ({ sourceSceneId: id, title: `Scene ${id}`, releaseDate, performers: [], thumbnailUrl: "", releaseUrl: `https://source/${id}`, source: "Test", provenance: { source: "Test", sourceUrl: "https://source", recordUrl: `https://source/${id}`, sourceSceneId: id } });
+const adapter = (id, fetchScenes) => ({ id, name: `Studio ${id}`, authority: { name: "Test", url: `https://source/${id}`, role: "authoritative catalogue" }, fetchScenes });
 
-test("normalizes punctuation and accents for matching", () => {
-  assert.equal(normalizeTitle(" Café—Scene! "), "cafe scene");
+test("parses representative saved AnalVids listing and scene pages", async () => {
+  const [listing] = parseListing(await fixture("listing.html"));
+  assert.deepEqual(listing, { title: "Ada & Bea", releaseUrl: "https://www.analvids.com/watch/42/a_scene", thumbnailUrl: "https://cdn.example/thumb.jpg?x=1&y=2" });
+  const parsed = parseScenePage(await fixture("scene.html"), listing);
+  assert.equal(parsed.id, "lancelot-styles-evolution:42");
+  assert.equal(parsed.sourceSceneId, "42");
+  assert.equal(parsed.provenance.source, "AnalVids");
+  assert.deepEqual(parsed.performers, ["Ada"]);
 });
 
-test("deduplicates records and keeps authoritative studio fields", () => {
-  const tpdb = [{ ...base, source: "tpdb", performers: ["Ada", "Bea"], releaseUrl: "tpdb" }];
-  const studio = [{ ...base, source: "studio", title: "Cafe Scene", performers: ["Ada"], releaseUrl: "studio" }];
-  const [scene] = reconcile(studio, tpdb);
-  assert.equal(scene.releaseUrl, "studio");
-  assert.equal(scene.source, "studio");
-  assert.deepEqual(scene.performers, ["Ada", "Bea"]);
+test("IDs are stable and scoped to a studio rather than title or date", () => {
+  const first = validateResult(adapter("one", null), { scenes: [scene("42")], verifiedEmpty: false })[0];
+  const second = validateResult(adapter("two", null), { scenes: [{ ...scene("42"), title: first.title, releaseDate: first.releaseDate }], verifiedEmpty: false })[0];
+  assert.equal(first.id, "one:42");
+  assert.equal(second.id, "two:42");
+  assert.notEqual(first.id, second.id);
+});
+
+test("distinguishes verified empty catalogues from suspicious extraction failures", () => {
+  assert.deepEqual(validateResult(adapter("empty", null), { scenes: [], verifiedEmpty: true }), []);
+  assert.throws(() => validateResult(adapter("empty", null), { scenes: [] }), /Suspicious empty/);
 });
 
 test("keeps only releases in the rolling window", () => {
-  const scenes = [
-    { ...base, releaseDate: "2026-09-24" },
-    { ...base, releaseDate: "2026-06-25" },
-    { ...base, releaseDate: "2026-09-25" },
-  ];
-  assert.deepEqual(withinRollingWindow(scenes, new Date("2026-09-24T12:00:00Z")).map((scene) => scene.releaseDate), ["2026-09-24"]);
+  assert.deepEqual(withinRollingWindow([scene("today", "2026-09-24"), scene("old", "2026-06-25"), scene("future", "2026-09-25")], new Date("2026-09-24T12:00:00Z")).map(({ sourceSceneId }) => sourceSceneId), ["today"]);
 });
 
-test("parses AnalVids listing cards", () => {
-  const html = `<section id="lancelotstylesevolution_scenes"><div class="card-scene"><a href="https://www.analvids.com/watch/42/a_scene"><img data-src="https://cdn.example/thumb.jpg?x=1&amp;y=2"></a><div class="card-scene__text"><a title="Ada &amp; Bea">Ada</a></div></div></section>`;
-  assert.deepEqual(parseListing(html), [{
-    title: "Ada & Bea",
-    releaseUrl: "https://www.analvids.com/watch/42/a_scene",
-    thumbnailUrl: "https://cdn.example/thumb.jpg?x=1&y=2",
-  }]);
+test("sync exposes dashboard shape and lets studios succeed independently", async () => {
+  const path = join(tmpdir(), `liszt-${process.pid}-independent.json`);
+  await writeFile(path, JSON.stringify({ lastChecked: "2026-09-20T00:00:00Z", studios: [{ id: "bad", name: "Studio bad", lastSuccessfulRefresh: "2026-09-20T00:00:00Z" }], scenes: [{ ...scene("kept", "2026-09-19"), id: "bad:kept", studioId: "bad", studio: "Studio bad" }] }));
+  const result = await sync({ now: new Date("2026-09-24T12:00:00Z"), paths: [path], adapters: [adapter("good", async () => ({ scenes: [scene("new")], verifiedEmpty: false })), adapter("bad", async () => { throw new Error("source down"); })] });
+  assert.deepEqual(result.scenes.map(({ id }) => id), ["good:new", "bad:kept"]);
+  assert.equal(result.studios.find(({ id }) => id === "bad").error, "source down");
+  assert.equal(result.studios.find(({ id }) => id === "bad").lastSuccessfulRefresh, "2026-09-20T00:00:00Z");
+  assert.deepEqual(Object.keys(result).sort(), ["lastChecked", "scenes", "studios"]);
 });
 
-test("parses release details and excludes the male studio performer", () => {
-  const listing = { title: "Fallback", releaseUrl: "https://www.analvids.com/watch/42/a_scene", thumbnailUrl: "thumb" };
-  const html = `<h1 class="watch__title h2">A scene with <a href="https://www.analvids.com/model/12/ada">Ada</a> and <a href="https://www.analvids.com/model/3336/lancelot">Lancelot</a></h1><i class="bi bi-calendar3 me-5"> 2026-09-20</i>`;
-  assert.deepEqual(parseScenePage(html, listing), {
-    id: "42", title: "A scene with Ada and Lancelot", releaseDate: "2026-09-20",
-    studio: "Lancelot Styles Evolution", performers: ["Ada"], thumbnailUrl: "thumb",
-    releaseUrl: listing.releaseUrl, source: "studio",
-  });
+test("failed studios retain only last-good records still inside the rolling window", async () => {
+  const path = join(tmpdir(), `liszt-${process.pid}-window.json`);
+  await writeFile(path, JSON.stringify({ studios: [{ id: "bad", lastSuccessfulRefresh: "earlier" }], scenes: [{ ...scene("recent", "2026-09-01"), id: "bad:recent", studioId: "bad", studio: "Studio bad" }, { ...scene("expired", "2026-01-01"), id: "bad:expired", studioId: "bad", studio: "Studio bad" }] }));
+  const result = await sync({ now: new Date("2026-09-24T12:00:00Z"), paths: [path], adapters: [adapter("bad", async () => { throw new Error("broken parse"); })] });
+  assert.deepEqual(result.scenes.map(({ id }) => id), ["bad:recent"]);
 });
 
-test("keeps only performers confirmed by female model profiles", () => {
-  const listing = { title: "Fallback", releaseUrl: "https://www.analvids.com/watch/42/a_scene", thumbnailUrl: "thumb" };
-  const html = `<h1 class="watch__title h2"><a href="https://www.analvids.com/model/12/ada">Ada</a> and <a href="https://www.analvids.com/model/13/bob">Bob</a></h1><i class="bi bi-calendar3"> 2026-09-20</i>`;
-  assert.deepEqual(parseScenePage(html, listing, new Set(["12/ada"])).performers, ["Ada"]);
+test("Lancelot declares AnalVids as its authority", () => {
+  assert.equal(studio.authority.role, "authoritative catalogue");
+  assert.match(studio.authority.url, /analvids\.com/);
 });
