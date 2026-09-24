@@ -7,9 +7,13 @@ const count = document.querySelector("#count");
 const notices = document.querySelector("#notices");
 const refresh = document.querySelector("#refresh");
 const lastChecked = document.querySelector("#last-checked");
+const sourcesDialog = document.querySelector("#sources");
+const sourcesList = document.querySelector("#sources-list");
+const navLinks = document.querySelectorAll("nav [data-view]");
 const catalogueUrl = document.body.dataset.catalogueUrl || "./catalogue.json";
 const refreshUrl = document.body.dataset.refreshUrl;
 let scenes = [];
+let sourceStatuses = [];
 
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 const parseDate = (value) => new Date(`${value}T12:00:00Z`);
@@ -32,6 +36,37 @@ function render() {
     return `<article class="row" style="animation-delay:${index * 45}ms"><time class="date" datetime="${scene.releaseDate}"><strong>${date.getUTCDate().toString().padStart(2, "0")}</strong><span>${date.toLocaleDateString("en", { weekday: "short", timeZone: "UTC" })}</span></time><div class="thumb">${scene.thumbnailUrl ? `<img src="${escapeHtml(scene.thumbnailUrl)}" alt="">` : escapeHtml(initials)}</div><div class="details"><h3>${escapeHtml(scene.title)}</h3><p>${escapeHtml(scene.studio)}</p></div><div class="performers">${scene.performers.map(escapeHtml).join(" · ") || "Performers unlisted"}</div><a class="link" href="${escapeHtml(scene.releaseUrl)}" target="_blank" rel="noreferrer" aria-label="Open ${escapeHtml(scene.title)} source record">↗</a></article>`;
   }).join("")}</section>`).join("");
 }
+
+function renderSources() {
+  if (!sourceStatuses.length) {
+    sourcesList.innerHTML = '<div class="empty source-empty"><span>∅</span><h2>No sources configured</h2></div>';
+    return;
+  }
+  sourcesList.innerHTML = sourceStatuses.map((item) => {
+    const authority = item.authority || {};
+    const updated = item.lastSuccessfulRefresh ? new Date(item.lastSuccessfulRefresh).toLocaleString("en", { dateStyle: "medium", timeStyle: "short" }) : "Not yet refreshed";
+    const releaseCount = scenes.filter((scene) => scene.studioId === item.id).length;
+    const sourceUrl = /^https?:\/\//i.test(authority.url || "") ? authority.url : "#";
+    return `<article class="source-item"><div class="source-item__status ${item.error ? "source-item__status--error" : ""}" aria-label="${item.error ? "Source has an error" : "Source is available"}"></div><div class="source-item__body"><p class="source-role">${escapeHtml(authority.role || "Catalogue source")}</p><h3>${escapeHtml(item.name)}</h3><p class="source-authority">Provided by ${escapeHtml(authority.name || "Unknown authority")}</p><dl><div><dt>Watchlist records</dt><dd>${releaseCount}</dd></div><div><dt>Last successful refresh</dt><dd>${escapeHtml(updated)}</dd></div></dl>${item.error ? `<p class="source-error">${escapeHtml(item.error)}</p>` : ""}</div><a class="source-open" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span>Open catalogue</span> ↗</a></article>`;
+  }).join("");
+}
+
+function syncView() {
+  const showSources = location.hash === "#sources";
+  navLinks.forEach((link) => link.classList.toggle("active", link.dataset.view === (showSources ? "sources" : "watchlist")));
+  if (showSources && !sourcesDialog.open) sourcesDialog.showModal();
+  if (!showSources && sourcesDialog.open) sourcesDialog.close();
+}
+
+window.addEventListener("hashchange", syncView);
+sourcesDialog.querySelector(".dialog-close").addEventListener("click", () => { location.hash = "watchlist"; });
+sourcesDialog.addEventListener("click", (event) => {
+  if (event.target === sourcesDialog) location.hash = "watchlist";
+});
+sourcesDialog.addEventListener("close", () => {
+  if (location.hash === "#sources") history.replaceState(null, "", `${location.pathname}${location.search}#watchlist`);
+  syncView();
+});
 search.addEventListener("input", render);
 sort.addEventListener("change", render);
 studio.addEventListener("change", () => {
@@ -44,6 +79,7 @@ studio.addEventListener("change", () => {
 function applyCatalogue(data) {
   scenes = data.scenes;
   const statuses = data.studios || [];
+  sourceStatuses = statuses;
   const selectedStudio = studio.value;
   studio.replaceChildren(new Option("All studios", "all"));
   studio.insertAdjacentHTML("beforeend", statuses.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} (${scenes.filter((scene) => scene.studioId === item.id).length})</option>`).join(""));
@@ -52,6 +88,7 @@ function applyCatalogue(data) {
   if ([...studio.options].some((option) => option.value === desiredStudio)) studio.value = desiredStudio;
   notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("");
   lastChecked.textContent = data.lastChecked ? new Date(data.lastChecked).toLocaleString("en", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Not yet checked";
+  renderSources();
   render();
 }
 
@@ -84,3 +121,4 @@ try {
 } catch (error) {
   list.innerHTML = `<div class="empty"><span>!</span><h2>Catalogue unavailable</h2><p>${escapeHtml(error.message)}</p></div>`;
 }
+syncView();
