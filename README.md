@@ -16,6 +16,12 @@ Prove the end-to-end workflow for **Lancelot Styles Evolution**:
 
 A scene should appear once in the list, even if it is found through more than one source. The studio's release page and published details are authoritative. TPDB can add useful coverage and metadata, but it does not override the studio's own release information.
 
+## Dashboard design
+
+The [watchlist mockups](docs/mockups/watchlist.html) show two layouts: a release ledger and visual cards. The **release ledger** is the preferred starting point because it keeps dates and performers easy to scan while giving each scene a thumbnail and a route to its studio release page.
+
+To view them, download or clone the repository and open `docs/mockups/watchlist.html` in a browser. The preview is self-contained and uses illustrative placeholders; it does not contain real scenes, imagery, or working studio links.
+
 ## Direction
 
 Liszt starts with the watchlist. Later stages may add more studios and check whether listed scenes are already present on disk. Acquisition and other automation may follow gradually, once the scene list is dependable.
