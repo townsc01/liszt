@@ -29,7 +29,7 @@ Liszt starts with the watchlist. Later stages may add more studios and check whe
 
 ## Run the prototype
 
-The prototype is a dependency-free Node.js application. It demonstrates the release ledger, search and sorting, source reconciliation, and a rolling 90-day window with intentionally fictional fixture records.
+The prototype is a dependency-free Node.js application. It provides a release ledger, search and sorting, and a rolling 90-day window populated from the live AnalVids listing.
 
 ```sh
 npm test
@@ -39,8 +39,8 @@ npm start
 
 Then open <http://localhost:3000>. Set `PORT` or `LISZT_DATA_PATH` to override the defaults.
 
-The sync command currently reads `fixtures/studio.json` and `fixtures/tpdb.json`. This makes the pipeline repeatable while the supplied listing's authority and the upstream API access are verified. A production source adapter and scheduler are the next integration step; the displayed data is not presented as a real studio catalogue.
+The sync command fetches the current studio listing from AnalVids, follows each release page for its exact date and linked performers, and writes the rolling 90-day catalogue to both the local server and GitHub Pages data files. A scheduled GitHub Actions workflow refreshes and commits that data every day; it can also be run manually from the Actions tab.
 
 ## Status
 
-First local prototype. Catalogue discovery, live adapters, credentials, and scheduled polling remain to be implemented.
+Live AnalVids catalogue adapter and daily scheduled publishing are implemented. AnalVids remains a third-party discovery source, not the studio's authoritative catalogue.
