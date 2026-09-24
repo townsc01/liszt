@@ -12,9 +12,9 @@ Prove the end-to-end workflow for **Lancelot Styles Evolution**:
 2. Match records that refer to the same scene.
 3. Use the studio's own listing as the source of truth when sources disagree.
 4. Maintain a rolling 90-day list without duplicate scenes.
-5. Show each scene's **release date**, **studio**, and **female performers** in a dashboard.
+5. Show each scene's **release date**, **studio**, **female performers**, **thumbnail**, and a **link to the studio's release page** in a dashboard.
 
-A scene should appear once in the list, even if it is found through more than one source. TPDB can add useful coverage and metadata, but it does not override the studio's own release information.
+A scene should appear once in the list, even if it is found through more than one source. The studio's release page and published details are authoritative. TPDB can add useful coverage and metadata, but it does not override the studio's own release information.
 
 ## Direction
 
