@@ -1,3 +1,4 @@
+import { fetchAnalVidsText } from "./analvids-fetch.js";
 const BASE_URL = "https://www.analvids.com";
 export const STUDIO_URL = `${BASE_URL}/studios/lancelotstylesevolution`;
 
@@ -47,12 +48,6 @@ export function parseScenePage(html, listing, femaleModelSlugs = null) {
   };
 }
 
-async function fetchText(url, fetchImpl) {
-  const response = await fetchImpl(url, { headers: { "user-agent": "Liszt catalogue updater/1.0" } });
-  if (!response.ok) throw new Error(`AnalVids returned ${response.status} for ${url}`);
-  return response.text();
-}
-
 const monthUrls = (now, days) => {
   const earliest = new Date(now.getTime() - days * 86_400_000);
   const cursor = new Date(Date.UTC(earliest.getUTCFullYear(), earliest.getUTCMonth(), 1));
@@ -65,7 +60,7 @@ const monthUrls = (now, days) => {
 };
 
 export async function fetchAnalVidsScenes({ now = new Date(), days = 90, fetchImpl = fetch } = {}) {
-  const pages = await Promise.all(monthUrls(now, days).map((url) => fetchText(url, fetchImpl)));
+  const pages = await Promise.all(monthUrls(now, days).map((url) => fetchAnalVidsText(url, fetchImpl)));
   const listings = [...new Map(pages.flatMap(parseListing).map((scene) => [scene.releaseUrl, scene])).values()];
   // An empty recent catalogue would be extraordinary. Treat it as extraction failure,
   // not a successful empty refresh that could erase the last known-good records.
@@ -73,14 +68,14 @@ export async function fetchAnalVidsScenes({ now = new Date(), days = 90, fetchIm
   const scenePages = [];
   const queue = [...listings];
   await Promise.all(Array.from({ length: Math.min(8, queue.length) }, async () => {
-    while (queue.length) { const listing = queue.shift(); scenePages.push({ listing, html: await fetchText(listing.releaseUrl, fetchImpl) }); }
+    while (queue.length) { const listing = queue.shift(); scenePages.push({ listing, html: await fetchAnalVidsText(listing.releaseUrl, fetchImpl) }); }
   }));
   const models = new Map(scenePages.flatMap(({ html }) => [...(html.match(/<h1 class="watch__title[^>]*>([\s\S]*?)<\/h1>/)?.[1] || "").matchAll(/href="https:\/\/www\.analvids\.com\/model\/([^\"]+)"/g)])
     .map(([, slug]) => [slug, `${BASE_URL}/model/${slug}`]));
   const femaleModelSlugs = new Set();
   const modelQueue = [...models];
   await Promise.all(Array.from({ length: Math.min(8, modelQueue.length) }, async () => {
-    while (modelQueue.length) { const [slug, url] = modelQueue.shift(); if (/\/models\/sex\/female\//.test(await fetchText(url, fetchImpl))) femaleModelSlugs.add(slug); }
+    while (modelQueue.length) { const [slug, url] = modelQueue.shift(); if (/\/models\/sex\/female\//.test(await fetchAnalVidsText(url, fetchImpl))) femaleModelSlugs.add(slug); }
   }));
   return { scenes: scenePages.map(({ html, listing }) => parseScenePage(html, listing, femaleModelSlugs)), verifiedEmpty: false };
 }
