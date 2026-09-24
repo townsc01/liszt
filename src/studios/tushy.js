@@ -25,7 +25,12 @@ export function parseTpdbScene(record, performerGenders = new Map()) {
   }
   const performers = Array.isArray(record.performers)
     ? record.performers
-      .filter((performer) => String(performer?.extras?.gender ?? performer?.gender ?? performerGenders.get(String(performer?.id ?? performer?.uuid ?? performer?._id)) ?? "").trim().toLowerCase() === "female")
+      .filter((performer) => {
+        const identifier = performer?.id ?? performer?.uuid ?? performer?._id;
+        const name = performer?.name?.trim().toLowerCase();
+        const gender = performer?.extras?.gender ?? performer?.gender ?? performerGenders.get(String(identifier)) ?? performerGenders.get(name) ?? "";
+        return String(gender).trim().toLowerCase() === "female";
+      })
       .map((performer) => performer?.name?.trim())
       .filter(Boolean)
     : [];
@@ -68,22 +73,58 @@ async function requestPerformer(url, fetchImpl, apiKey) {
   return result.data;
 }
 
+async function findFemalePerformer(name, fetchImpl, apiKey) {
+  const url = new URL(`${API_BASE_URL}/performers`);
+  url.searchParams.set("q", name);
+  url.searchParams.set("gender", "FEMALE");
+  url.searchParams.set("per_page", String(PER_PAGE));
+  const candidates = await requestJson(url, fetchImpl, apiKey);
+  const target = name.trim().toLowerCase();
+  return candidates.some((candidate) => [candidate.name, candidate.full_name]
+    .some((candidateName) => candidateName?.trim().toLowerCase() === target));
+}
+
 async function resolvePerformerGenders(records, fetchImpl, apiKey) {
   const performers = new Map();
   for (const record of records) {
     for (const performer of record.performers || []) {
       const identifier = performer?.id ?? performer?.uuid ?? performer?._id;
       const gender = performer?.extras?.gender ?? performer?.gender;
-      if (identifier && !gender && !performers.has(String(identifier))) performers.set(String(identifier), null);
+      const name = performer?.name?.trim();
+      if (gender) {
+        if (identifier) performers.set(String(identifier), gender);
+        if (name) performers.set(name.toLowerCase(), gender);
+      } else {
+        if (identifier && !performers.has(String(identifier))) performers.set(String(identifier), null);
+        if (name && !performers.has(name.toLowerCase())) performers.set(name.toLowerCase(), null);
+      }
     }
   }
-  const queue = [...performers.keys()];
+  const queue = [...new Set((records.flatMap((record) => record.performers || []))
+    .filter((performer) => !performer?.extras?.gender && !performer?.gender)
+    .map((performer) => ({ identifier: performer?.id ?? performer?.uuid ?? performer?._id, name: performer?.name?.trim() }))
+    .filter(({ identifier, name }) => identifier || name)
+    .map(({ identifier, name }) => `${identifier ? `id:${identifier}` : ""}${identifier && name ? "|" : ""}${name ? `name:${name.toLowerCase()}` : ""}`))];
   await Promise.all(Array.from({ length: Math.min(8, queue.length) }, async () => {
     while (queue.length) {
-      const identifier = queue.shift();
-      const url = `${API_BASE_URL}/performers/${encodeURIComponent(identifier)}`;
-      const performer = await requestPerformer(url, fetchImpl, apiKey);
-      performers.set(identifier, performer?.extras?.gender ?? performer?.gender ?? "");
+      const key = queue.shift();
+      const [, identifier] = key.match(/(?:^|\|)id:([^|]+)/) || [];
+      const [, name] = key.match(/(?:^|\|)name:(.*)$/) || [];
+      let gender = "";
+      if (identifier) {
+        const performer = await requestPerformer(`${API_BASE_URL}/performers/${encodeURIComponent(identifier)}`, fetchImpl, apiKey);
+        gender = performer?.extras?.gender ?? performer?.gender ?? "";
+      }
+      if (gender) {
+        if (identifier) performers.set(identifier, gender);
+        if (name) performers.set(name, gender);
+      } else if (name && await findFemalePerformer(name, fetchImpl, apiKey)) {
+        if (identifier) performers.set(identifier, "Female");
+        performers.set(name, "Female");
+      } else {
+        if (identifier) performers.set(identifier, "Unknown");
+        if (name) performers.set(name, "Unknown");
+      }
     }
   }));
   return performers;
