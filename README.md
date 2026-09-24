@@ -1,27 +1,25 @@
 # Liszt
 
-Liszt is a personal project for building a reliable watchlist of recently released studio scenes. It is currently in the planning stage.
+Liszt is a personal project for building a reliable watchlist of recently released studio scenes. The first live version tracks Lancelot Styles Evolution.
 
-The first version will check the Lancelot Styles Evolution catalogue and The Porn Database (TPDB) each day, reconcile records for scenes released in the past 90 days, and present one canonical list in a dashboard.
+For this project, the [Lancelot Styles Evolution listing on AnalVids](https://www.analvids.com/studios/lancelotstylesevolution) and its linked scene pages are the **authoritative catalogue**. Liszt uses their release information as the source of truth. AnalVids is the authority for this watchlist even though it is a third-party site, rather than the studio's own website.
 
 ## First milestone
 
-Prove the end-to-end workflow for **Lancelot Styles Evolution**. The [supplied studio listing](https://www.analvids.com/studios/lancelotstylesevolution) is the starting URL for source discovery.
+Show one canonical, rolling 90-day list of Lancelot Styles Evolution releases:
 
-1. Determine what the supplied listing exposes, whether it is an authoritative studio catalogue, and how to reach individual release pages.
-2. Poll the usable catalogue source and TPDB API daily.
-3. Match records that refer to the same scene.
-4. Use the studio's own published information as the source of truth when sources disagree.
-5. Maintain a rolling 90-day list without duplicate scenes.
-6. Show each scene's **release date**, **studio**, **female performers**, **thumbnail**, and a **link to the studio's release page** in a dashboard.
+1. Poll the AnalVids listing's relevant month pages each day and follow their scene pages.
+2. Record each scene's title, release date, studio, female performers, thumbnail, and link to its AnalVids scene page.
+3. Deduplicate scenes and keep only releases within the past 90 days.
+4. Display the catalogue in a searchable, sortable dashboard.
 
-A scene should appear once in the list, even if it is found through more than one source. TPDB can add useful coverage and metadata, but it does not override the studio's own release information. If the supplied listing is a third-party index, treat it as a discovery source until an authoritative studio source is established.
+The Porn Database (TPDB) may be added later for supplementary coverage or metadata. It is **not part of the current live sync** and will not override AnalVids when sources disagree.
 
 ## Dashboard design
 
-The [watchlist mockups](docs/mockups/watchlist.html) show two layouts: a release ledger and visual cards. The **release ledger** is the preferred starting point because it keeps dates and performers easy to scan while giving each scene a thumbnail and a route to its studio release page.
+The [watchlist mockups](docs/mockups/watchlist.html) show two layouts: a release ledger and visual cards. The **release ledger** is the preferred starting point because it keeps dates and performers easy to scan while giving each scene a thumbnail and a link to its AnalVids page.
 
-To view them, download or clone the repository and open `docs/mockups/watchlist.html` in a browser. The preview is self-contained and uses illustrative placeholders; it does not contain real scenes, imagery, or working studio links.
+To view the mockups, download or clone the repository and open `docs/mockups/watchlist.html` in a browser. The preview is self-contained and uses illustrative placeholders; it does not contain real scenes, imagery, or working scene links.
 
 ## Direction
 
@@ -39,8 +37,8 @@ npm start
 
 Then open <http://localhost:3000>. Set `PORT` or `LISZT_DATA_PATH` to override the defaults.
 
-The sync command fetches the current studio listing from AnalVids, follows each release page for its exact date and linked performers, and writes the rolling 90-day catalogue to both the local server and GitHub Pages data files. A scheduled GitHub Actions workflow refreshes and commits that data every day; it can also be run manually from the Actions tab.
+The sync command fetches the relevant AnalVids month listings, follows scene pages for their release dates and linked performers, and writes the rolling 90-day catalogue to both the local server and GitHub Pages data files. A scheduled GitHub Actions workflow refreshes and commits that data every day; it can also be run manually from the Actions tab.
 
 ## Status
 
-Live AnalVids catalogue adapter and daily scheduled publishing are implemented. AnalVids remains a third-party discovery source, not the studio's authoritative catalogue.
+Live AnalVids catalogue adapter and daily scheduled publishing are implemented. TPDB integration and on-disk presence checks are future work.
