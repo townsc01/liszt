@@ -10,6 +10,7 @@ import { parseListing, parseScenePage, studio } from "../src/studios/lancelot-st
 import { fetchAnalVidsScenes as fetchMamboPervScenes, parseListing as parseMamboPervListing, parseScenePage as parseMamboPervScenePage, studio as mamboPerv } from "../src/studios/mambo-perv.js";
 import { studios } from "../src/studios/index.js";
 import { sync } from "../src/sync.js";
+import { fetchTushyScenes, parseTpdbScene, studio as tushy } from "../src/studios/tushy.js";
 
 const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
 const scene = (id, releaseDate = "2026-09-20") => ({ sourceSceneId: id, title: `Scene ${id}`, releaseDate, performers: [], thumbnailUrl: "", releaseUrl: `https://source/${id}`, source: "Test", provenance: { source: "Test", sourceUrl: "https://source", recordUrl: `https://source/${id}`, sourceSceneId: id } });
@@ -132,4 +133,62 @@ test("AnalVids retries transient network failures and identifies exhausted URL",
   assert.equal(text, "scene");
   assert.equal(calls, 3);
   await assert.rejects(fetchAnalVidsText(url, async () => { throw new TypeError("fetch failed"); }, { delay: async () => {} }), /fetch failed for https:\/\/www\.analvids\.com\/watch\/123\/example after 3 attempts/);
+});
+
+test("maps TPDB scene records and tolerates absent optional metadata", async () => {
+  const fixtureData = JSON.parse(await readFile(new URL("../fixtures/tpdb-tushy.json", import.meta.url), "utf8"));
+  const [parsed] = fixtureData.data.map(parseTpdbScene);
+  assert.deepEqual(parsed, {
+    sourceSceneId: "tpdb-scene-uuid-001",
+    title: "Example Tushy Scene",
+    releaseDate: "2026-09-20",
+    performers: ["Performer One", "Performer Two"],
+    thumbnailUrl: "https://cdn.example/tushy-scene.jpg",
+    releaseUrl: "https://www.tushy.com/scenes/example-tushy-scene",
+    source: "ThePornDB",
+    provenance: { source: "ThePornDB", sourceUrl: tushy.authority.url, recordUrl: "https://www.tushy.com/scenes/example-tushy-scene", sourceSceneId: "tpdb-scene-uuid-001" },
+  });
+  assert.equal(parseTpdbScene({ id: 42, title: "Bare", date: "2026-09-20" }).thumbnailUrl, "");
+  assert.deepEqual(parseTpdbScene({ id: 42, title: "Bare", date: "2026-09-20" }).performers, []);
+  assert.throws(() => parseTpdbScene({ title: "Missing ID", date: "2026-09-20" }), /missing its ID/);
+});
+
+test("Tushy polls all TPDB pages with bearer auth and confirms empty results", async () => {
+  const requests = [];
+  const now = new Date("2026-09-24T12:00:00Z");
+  const result = await fetchTushyScenes({ now, apiKey: "test-secret", fetchImpl: async (url, options) => {
+    requests.push({ url: String(url), authorization: options.headers.authorization });
+    const requestUrl = new URL(url);
+    const data = requestUrl.pathname === "/sites"
+      ? [{ id: 77, name: "Tushy", short_name: "tushy" }]
+      : Number(requestUrl.searchParams.get("page")) === 1
+        ? Array.from({ length: 100 }, (_, index) => ({ id: `scene-${index}`, title: `Scene ${index}`, date: "2026-09-20" }))
+        : [{ id: "last-scene", title: "Last scene", date: "2026-09-21" }];
+    return { ok: true, json: async () => ({ data }) };
+  } });
+  assert.equal(result.scenes.length, 101);
+  assert.deepEqual(requests.map(({ url }) => new URL(url).pathname), ["/sites", "/scenes", "/scenes"]);
+  assert.deepEqual(requests.slice(1).map(({ url }) => new URL(url).searchParams.get("page")), ["1", "2"]);
+  assert.ok(requests.slice(1).every(({ url }) => new URL(url).searchParams.get("site_id") === "77"));
+  assert.ok(requests.slice(1).every(({ url }) => new URL(url).searchParams.get("date") === "2026-06-26"));
+  assert.ok(requests.every(({ authorization }) => authorization === "Bearer test-secret"));
+  assert.equal(requests[0].url.includes("test-secret"), false);
+
+  let emptyCall = 0;
+  const empty = await fetchTushyScenes({ apiKey: "test-secret", fetchImpl: async () => {
+    emptyCall += 1;
+    return { ok: true, json: async () => ({ data: emptyCall === 1 ? [{ id: 77, name: "Tushy" }] : [] }) };
+  } });
+  assert.deepEqual(empty, { scenes: [], verifiedEmpty: true });
+});
+
+test("Tushy reports missing credentials, HTTP errors, and malformed responses without leaking the key", async () => {
+  await assert.rejects(fetchTushyScenes({ apiKey: "" }), /TPDB_API_KEY is not configured/);
+  await assert.rejects(fetchTushyScenes({ apiKey: "secret", fetchImpl: async () => ({ ok: false, status: 401 }) }), /HTTP 401/);
+  let malformedCall = 0;
+  await assert.rejects(fetchTushyScenes({ apiKey: "secret", fetchImpl: async () => {
+    malformedCall += 1;
+    return { ok: true, json: async () => (malformedCall === 1 ? { data: [{ id: 77, name: "Tushy" }] } : { nope: [] }) };
+  } }), /invalid response/);
+  assert.equal(studios.find(({ id }) => id === "tushy"), tushy);
 });

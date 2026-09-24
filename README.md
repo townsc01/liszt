@@ -4,7 +4,7 @@ Liszt is a personal hobby project for keeping a rolling 90-day watchlist of scen
 
 ## Sources and adapters
 
-Each studio has one configured source of release information. The source and extraction method can differ by studio: a studio website, primary storefront, third-party API such as TPDB, or another suitable source. Source URLs and record details are kept for debugging and traceability. The current code uses AnalVids listings and linked scene pages for **Lancelot Styles Evolution** and **Mambo Perv**. These are the two adapters registered in `src/studios/index.js`. Tushy has no registered adapter on the current branch, and TPDB integration is proposed rather than operational.
+Each studio has one configured source of release information. The source and extraction method can differ by studio: a studio website, primary storefront, third-party API such as TPDB, or another suitable source. Source URLs and record details are kept for debugging and traceability. The current code uses AnalVids listings and linked scene pages for **Lancelot Styles Evolution** and **Mambo Perv**, and the TPDB API for **Tushy**. These adapters are registered in `src/studios/index.js`.
 
 The current adapter contract is a module in `src/studios/` registered in `src/studios/index.js`:
 
@@ -21,7 +21,9 @@ The field is currently named `authority` in code; it identifies the configured s
 
 An adapter returning no scenes must set `verifiedEmpty: true` after checking that the source really has no matching records. An unexpected empty extraction is treated as a failure. Each studio refresh runs independently: if one fails, its last-good records within the 90-day window remain available, with an error and the last successful refresh time, while other studios can update.
 
-To add a studio today, implement and register an adapter for its chosen source, add representative fixtures and parsing tests, then run `npm test` and `npm run sync`. Inspect `data/catalogue.json` and the studio's refresh status. A source shared by several studios could instead be implemented as a reusable adapter.
+The Tushy adapter resolves the matching TPDB site record, then calls `/scenes` with its site ID and the 90-day cutoff. It sends `TPDB_API_KEY` as a Bearer token and follows paginated results. Keep this key in the server environment; it is never sent to the browser or written into catalogue data. As with the other adapters, the shared sync retains only the rolling 90-day window and preserves last-good records on a failed refresh.
+
+To add another studio, implement and register an adapter for its chosen source, add representative fixtures and parsing tests, then run `npm test` and `npm run sync`. Inspect `data/catalogue.json` and the studio's refresh status. A source shared by several studios could instead be implemented as a reusable adapter.
 
 ## Run and deploy
 
@@ -39,4 +41,4 @@ Fetching is server-side. The [watchlist mockups](docs/mockups/watchlist.html) ar
 
 ## Possible next steps
 
-A future dashboard flow could accept a studio name or website URL and add it to the watchlist. Where a generic adapter supports the studio, this could be a configuration change—for example, a TPDB adapter using a studio's TPDB identifier. Studios with unusual sources may still need dedicated adapters. Studio discovery, TPDB ingestion, browser-based ingestion, and checks for scenes already on disk are not implemented on the current branch.
+A future dashboard flow could accept a studio name or website URL and add it to the watchlist. Studios with unusual sources may still need dedicated adapters. Studio discovery, browser-based ingestion, and checks for scenes already on disk are not implemented on the current branch.

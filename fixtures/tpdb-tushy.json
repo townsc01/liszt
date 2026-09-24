@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "id": "tpdb-scene-uuid-001",
+      "title": "Example Tushy Scene",
+      "date": "2026-09-20",
+      "url": "https://www.tushy.com/scenes/example-tushy-scene",
+      "image": "https://cdn.example/tushy-scene.jpg",
+      "performers": [{ "name": "Performer One" }, { "name": "Performer Two" }]
+    }
+  ]
+}
