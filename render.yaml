@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: liszt-eporner
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    autoDeployTrigger: off

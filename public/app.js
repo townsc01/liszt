@@ -1,3 +1,5 @@
+import { renderSceneLinks } from "./scene-links.js";
+
 const list = document.querySelector("#list");
 const empty = document.querySelector("#empty");
 const search = document.querySelector("#search");
@@ -33,7 +35,7 @@ function render() {
   list.innerHTML = [...groups].map(([month, items]) => `<section class="month"><div class="month-heading"><h2>${escapeHtml(month)}</h2><span>${items.length} ${items.length === 1 ? "release" : "releases"}</span></div>${items.map((scene, index) => {
     const date = parseDate(scene.releaseDate);
     const initials = scene.title.split(/\s+/).slice(0, 2).map((word) => word[0]).join("");
-    return `<article class="row" style="animation-delay:${index * 45}ms"><time class="date" datetime="${scene.releaseDate}"><strong>${date.getUTCDate().toString().padStart(2, "0")}</strong><span>${date.toLocaleDateString("en", { weekday: "short", timeZone: "UTC" })}</span></time><div class="thumb">${scene.thumbnailUrl ? `<img src="${escapeHtml(scene.thumbnailUrl)}" alt="">` : escapeHtml(initials)}</div><div class="details"><h3>${escapeHtml(scene.title)}</h3><p>${escapeHtml(scene.studio)}</p></div><div class="performers">${scene.performers.map(escapeHtml).join(" · ") || "Performers unlisted"}</div><a class="link" href="${escapeHtml(scene.releaseUrl)}" target="_blank" rel="noreferrer" aria-label="Open ${escapeHtml(scene.title)} source record">↗</a></article>`;
+    return `<article class="row" style="animation-delay:${index * 45}ms"><time class="date" datetime="${scene.releaseDate}"><strong>${date.getUTCDate().toString().padStart(2, "0")}</strong><span>${date.toLocaleDateString("en", { weekday: "short", timeZone: "UTC" })}</span></time><div class="thumb">${scene.thumbnailUrl ? `<img src="${escapeHtml(scene.thumbnailUrl)}" alt="">` : escapeHtml(initials)}</div><div class="details"><h3>${escapeHtml(scene.title)}</h3><p>${escapeHtml(scene.studio)}</p></div><div class="performers">${scene.performers.map(escapeHtml).join(" · ") || "Performers unlisted"}</div>${renderSceneLinks(scene)}</article>`;
   }).join("")}</section>`).join("");
 }
 

@@ -1,0 +1,3 @@
+[submodule "vendor/lustpress"]
+	path = vendor/lustpress
+	url = https://github.com/sinkaroid/lustpress.git
