@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validateResult, withinRollingWindow } from "../src/catalogue.js";
 import { parseListing, parseScenePage, studio } from "../src/studios/lancelot-styles-evolution.js";
+import { fetchAnalVidsScenes as fetchMamboPervScenes, parseListing as parseMamboPervListing, parseScenePage as parseMamboPervScenePage, studio as mamboPerv } from "../src/studios/mambo-perv.js";
+import { studios } from "../src/studios/index.js";
 import { sync } from "../src/sync.js";
 
 const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
@@ -58,4 +60,42 @@ test("failed studios retain only last-good records still inside the rolling wind
 test("Lancelot declares AnalVids as its authority", () => {
   assert.equal(studio.authority.role, "authoritative catalogue");
   assert.match(studio.authority.url, /analvids\.com/);
+});
+
+test("parses representative saved Mambo Perv listing and scene pages", async () => {
+  const mamboFixture = (name) => readFile(new URL(`../fixtures/mambo-perv/${name}`, import.meta.url), "utf8");
+  const [listing] = parseMamboPervListing(await mamboFixture("listing.html"));
+  assert.deepEqual(listing, {
+    title: "Lika Sanches & scene OB668",
+    releaseUrl: "https://www.analvids.com/watch/5281264/19y_very_beautiful_brazilian_lika_sanches_first_double_anal_penetration_dapbreakin_dap_anal_2on1_bbc_dirty_talk_ob668",
+    thumbnailUrl: "https://cdn.example/mambo-thumb.jpg?x=1&y=2",
+  });
+  const parsed = parseMamboPervScenePage(await mamboFixture("scene.html"), listing, new Set(["308317/lika_sanches"]));
+  assert.equal(parsed.sourceSceneId, "5281264");
+  assert.equal(parsed.releaseDate, "2026-09-20");
+  assert.deepEqual(parsed.performers, ["Lika Sanches"]);
+  assert.deepEqual(parsed.provenance, { source: "AnalVids", sourceUrl: mamboPerv.authority.url, recordUrl: listing.releaseUrl, sourceSceneId: "5281264" });
+});
+
+test("Mambo Perv treats a zero-card parse as a failed fetch", async () => {
+  const response = { ok: true, text: async () => "<html><body>No scene cards</body></html>" };
+  await assert.rejects(fetchMamboPervScenes({ now: new Date("2026-09-24T12:00:00Z"), fetchImpl: async () => response }), /no Mambo Perv scene cards/);
+});
+
+test("Mambo Perv is registered for the dashboard filter with its documented authority", async () => {
+  assert.equal(studios.find(({ id }) => id === "mambo-perv"), mamboPerv);
+  assert.equal(mamboPerv.authority.role, "authoritative catalogue");
+  const dashboard = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+  assert.match(dashboard, /statuses\.map/);
+  assert.match(dashboard, /<option value=/);
+});
+
+test("a failed Mambo Perv fetch preserves its last good catalogue", async () => {
+  const path = join(tmpdir(), `liszt-${process.pid}-mambo-retention.json`);
+  const prior = { ...scene("5281264", "2026-09-20"), id: "mambo-perv:5281264", studioId: "mambo-perv", studio: "Mambo Perv" };
+  await writeFile(path, JSON.stringify({ lastChecked: "2026-09-21T00:00:00Z", studios: [{ id: "mambo-perv", name: "Mambo Perv", lastSuccessfulRefresh: "2026-09-21T00:00:00Z" }], scenes: [prior] }));
+  const result = await sync({ now: new Date("2026-09-24T12:00:00Z"), paths: [path], adapters: [{ ...mamboPerv, fetchScenes: async () => { throw new Error("source unavailable"); } }] });
+  assert.deepEqual(result.scenes.map(({ id }) => id), ["mambo-perv:5281264"]);
+  assert.equal(result.studios[0].lastSuccessfulRefresh, "2026-09-21T00:00:00Z");
+  assert.equal(result.studios[0].error, "source unavailable");
 });
