@@ -2,6 +2,20 @@ const API_BASE_URL = "https://api.theporndb.net";
 const SITES_URL = `${API_BASE_URL}/sites`;
 const PER_PAGE = 100;
 const MAX_PAGES = 1000;
+const MAX_RATE_LIMIT_RETRIES = 4;
+
+const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function fetchWithRateLimitRetry(url, options, fetchImpl) {
+  for (let attempt = 0; ; attempt += 1) {
+    const response = await fetchImpl(url, options);
+    if (response.status !== 429 || attempt >= MAX_RATE_LIMIT_RETRIES) return response;
+    const retryAfter = Number(response.headers?.get?.("retry-after"));
+    await delay(Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 30_000)
+      : Math.min(1000 * (2 ** attempt), 15_000));
+  }
+}
 
 export function createTpdbStudio({ id, name, siteName = name }) {
   const adapter = {
@@ -63,9 +77,9 @@ export function parseTpdbScene(record, performerGenders = new Map(), sourceUrl =
 }
 
 async function requestJson(url, fetchImpl, apiKey) {
-  const response = await fetchImpl(url, {
+  const response = await fetchWithRateLimitRetry(url, {
     headers: { authorization: `Bearer ${apiKey}`, accept: "application/json" },
-  });
+  }, fetchImpl);
   if (!response.ok) throw Object.assign(new Error(`TPDB request failed with HTTP ${response.status}`), { status: response.status });
   const result = await response.json();
   if (!result || !Array.isArray(result.data)) throw new Error("TPDB returned an invalid response");
@@ -73,9 +87,9 @@ async function requestJson(url, fetchImpl, apiKey) {
 }
 
 async function requestPerformer(url, fetchImpl, apiKey) {
-  const response = await fetchImpl(url, {
+  const response = await fetchWithRateLimitRetry(url, {
     headers: { authorization: `Bearer ${apiKey}`, accept: "application/json" },
-  });
+  }, fetchImpl);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`TPDB performer lookup failed with HTTP ${response.status}`);
   const result = await response.json();
@@ -125,7 +139,7 @@ async function resolvePerformerGenders(records, fetchImpl, apiKey) {
     .map((performer) => ({ identifier: performer?.id ?? performer?.uuid ?? performer?._id, name: performer?.name?.trim() }))
     .filter(({ identifier, name }) => identifier || name)
     .map(({ identifier, name }) => `${identifier ? `id:${identifier}` : ""}${identifier && name ? "|" : ""}${name ? `name:${name.toLowerCase()}` : ""}`))];
-  await Promise.all(Array.from({ length: Math.min(8, queue.length) }, async () => {
+  await Promise.all(Array.from({ length: Math.min(2, queue.length) }, async () => {
     while (queue.length) {
       const key = queue.shift();
       const [, identifier] = key.match(/(?:^|\|)id:([^|]+)/) || [];
