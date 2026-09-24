@@ -14,24 +14,26 @@
       <a class="brand" href="/" aria-label="Liszt home">Liszt<span>scene index</span></a>
       <nav aria-label="Primary"><a class="active" href="#watchlist"><span>◫</span> Watchlist</a><a href="#sources"><span>◎</span> Sources</a></nav>
       <div class="source-card" id="sources">
-        <span class="pulse"></span><div><strong>Source online</strong><small>Lancelot Styles Evolution</small></div>
+        <span class="pulse"></span><div><strong>Live catalogue</strong><small>Lancelot Styles Evolution</small></div>
       </div>
-      <p class="version">Prototype 01 · Local data</p>
+      <p class="version">Public preview · Verified data only</p>
     </aside>
     <main id="watchlist">
       <header>
-        <div><p class="eyebrow">The past 90 days</p><h1>Recent releases</h1><p class="intro">A quiet, canonical record of the studio’s newest work.</p></div>
+        <div><p class="eyebrow">The past 90 days</p><h1>Recent releases</h1><p class="intro">A date-first ledger from each studio’s explicitly chosen catalogue authority.</p></div>
         <div class="status"><span>Last checked</span><strong id="last-checked">Loading…</strong></div>
       </header>
       <section class="controls" aria-label="Watchlist controls">
         <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search titles or performers" autocomplete="off"></label>
+        <label class="sort-label" for="studio">Studio</label><select id="studio"><option value="all">All studios</option></select>
         <label class="sort-label" for="sort">Sort</label>
         <select id="sort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="title">Title A–Z</option></select>
         <span class="count" id="count">— releases</span>
       </section>
+      <div id="notices" class="notices" aria-live="polite"></div>
       <div id="list" aria-live="polite"><div class="loading">Gathering the catalogue…</div></div>
-      <div class="empty" id="empty" hidden><span>∅</span><h2>No matching releases</h2><p>Try a different title or performer.</p></div>
-      <footer><span>Liszt keeps the studio record authoritative.</span><span>90-day rolling window</span></footer>
+      <div class="empty" id="empty" hidden><span>∅</span><h2>No matching releases</h2><p>No verified releases are available yet.</p></div>
+      <footer><span>Each studio declares its catalogue authority.</span><span>90-day rolling window</span></footer>
     </main>
   </div>
 </body>
