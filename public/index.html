@@ -12,7 +12,7 @@
   <div class="shell">
     <aside>
       <a class="brand" href="/" aria-label="Liszt home">Liszt<span>scene index</span></a>
-      <nav aria-label="Primary"><a class="active" href="#watchlist" data-view="watchlist"><span>◫</span> Watchlist</a><a href="#sources" data-view="sources"><span>◎</span> Sources</a></nav>
+      <nav aria-label="Primary"><a class="active" href="#watchlist" data-view="watchlist"><span>◫</span> Watchlist</a><a href="#add" data-view="add"><span>＋</span> Add studio</a><a href="#sources" data-view="sources"><span>◎</span> Sources</a></nav>
       <div class="source-card" id="source-summary">
         <span class="pulse"></span><div><strong>Live catalogue</strong><small>Lancelot Styles Evolution</small></div>
       </div>
@@ -43,6 +43,13 @@
     </div>
     <p class="sources-intro">Each studio declares one catalogue authority. Open a source to inspect the records behind this watchlist.</p>
     <div class="sources-list" id="sources-list"><div class="loading">Gathering source details…</div></div>
+  </dialog>
+  <dialog class="sources-dialog add-dialog" id="add" aria-labelledby="add-title">
+    <div class="sources-dialog__header"><div><p class="eyebrow">Automatic discovery</p><h2 id="add-title">Add a studio</h2></div><button class="dialog-close" type="button" aria-label="Close add studio">×</button></div>
+    <div class="add-body"><p class="sources-intro">Paste the studio’s ordinary homepage. Liszt follows same-site evidence and only accepts scenes with stable links and published dates.</p>
+      <form id="discover-form"><label>Studio website URL<input id="studio-url" type="url" required placeholder="https://studio.example"></label><label>Admin token<input id="admin-token" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Explore website</button></form>
+      <div id="discovery-status" class="notices" aria-live="polite"></div><div id="studio-preview"></div>
+    </div>
   </dialog>
 </body>
 </html>

@@ -82,7 +82,7 @@ Liszt starts with the watchlist. Later stages may add more studios and check whe
 
 ## Run the prototype
 
-The prototype is a dependency-free Node.js application. It provides a release ledger, search and sorting, and a rolling 90-day window populated from the live AnalVids listing.
+The prototype is a Node.js application. It provides a release ledger, search and sorting, and a rolling 90-day window populated from the live AnalVids listing.
 
 ```sh
 npm test
@@ -100,4 +100,62 @@ The sync command runs every registered studio independently and writes the rolli
 
 ## Status
 
-Live AnalVids catalogue adapters for Lancelot Styles Evolution and Mambo Perv and daily scheduled publishing are implemented. TPDB integration and on-disk presence checks are future work.
+Live AnalVids adapters, generic structured-data discovery, and daily scheduled publishing are implemented. Server deployment, TPDB integration, and on-disk presence checks are future work.
+
+## Automatic studio discovery
+
+The **Add studio** screen accepts an ordinary homepage. Crawlee runs on the server,
+stays on the submitted hostname, visits at most 30 pages, and favours release, scene,
+video, and watch links beyond the first level. Liszt accepts Schema.org `VideoObject`,
+`Movie`, and `Episode` JSON-LD only when a publication date and stable scene URL are
+present. It hashes the canonical URL (without query or fragment) into a stable,
+studio-scoped ID and retains both homepage and record URL as provenance. Firecrawl is
+not used.
+
+This conservative generic path works for server-rendered sites with dated Schema.org
+records and canonical scene URLs. JavaScript-only catalogues, bot/login/age gates,
+dates embedded only in images or prose, and sites without individual stable URLs stay
+**pending**. The preview states which evidence is missing and will not invent a date or
+identity.
+
+### Flow and safety
+
+1. Open **Add studio**, enter a homepage and the admin token, then explore it.
+2. Inspect the detected name, visited pages, recent dates, thumbnails, and links.
+3. Add the supported preview. The API atomically persists `data/studios.json`,
+   deduplicates by normalized origin, and reports `saving`, `syncing`, and `complete`.
+4. Later `npm run sync` runs built-in and discovered studios. The existing 90-day
+   window and last-good retention protect records from failed or suspiciously empty
+   refreshes.
+
+Submitted URLs must use HTTP(S), standard ports, and public DNS targets. Credentials,
+localhost, private addresses, and off-origin crawl links are rejected. Crawling and
+credentials never run in browser code.
+
+## Deploying the authenticated service
+
+GitHub Pages cannot accept submissions. Deploy this repository's small Node service
+(for example as a single container) with Node 20, `npm ci`, and `npm start`, plus:
+
+* `LISZT_ADMIN_TOKEN`: a long random secret required by preview, add, progress, and
+  manual refresh APIs;
+* `LISZT_ALLOWED_ORIGIN=https://<owner>.github.io` when the static UI is cross-origin;
+* `LISZT_STUDIOS_PATH` and `LISZT_DATA_PATH` pointing into a persistent volume; and
+* a daily scheduler running `npm run sync` against that same volume (or authenticated
+  `POST /api/refresh`).
+
+For Pages, set `data-api-base` in `docs/index.html` to the service's HTTPS origin and
+`data-catalogue-url` to its `/api/scenes` URL. Alternatively serve `public/` directly
+from the service. Never place the admin token in Pages, repository secrets output, or
+source control. The existing Action continues publishing built-in sources; the volume,
+service URL, Pages configuration, and service scheduler remain deployment work and are
+not provisioned by this repository-only change.
+
+## Deterministic end-to-end demonstration
+
+`fixtures/generic-studio/home.html` is a previously unknown “Northstar Films” homepage.
+The discovery test submits it to the generic pipeline and verifies its dated “Aurora”
+scene, thumbnail, performer, and stable URL-derived ID. The server integration test
+authenticates, previews, adds, polls first-sync progress, and checks the resulting
+catalogue. This proves the complete flow without pretending a third-party site's live
+markup or crawling policy will remain unchanged.

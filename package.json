@@ -9,5 +9,11 @@
     "test": "node --test",
     "sync": "node src/sync.js"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "crawlee": "^3.18.1"
+  }
 }

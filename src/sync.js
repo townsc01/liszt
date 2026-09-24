@@ -2,11 +2,16 @@ import { fileURLToPath } from "node:url";
 import { validateResult, withinRollingWindow } from "./catalogue.js";
 import { studios as registeredStudios } from "./studios/index.js";
 import { readStore, writeStore } from "./store.js";
+import { readStudios } from "./studio-store.js";
+import { adapterForDiscoveredStudio } from "./discovery.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outputPaths = process.env.LISZT_DATA_PATH ? [process.env.LISZT_DATA_PATH] : [`${root}/data/catalogue.json`, `${root}/docs/catalogue.json`];
 
-export async function sync({ now = new Date(), fetchImpl = fetch, paths = outputPaths, adapters = registeredStudios } = {}) {
+const studioPath = process.env.LISZT_STUDIOS_PATH || `${root}/data/studios.json`;
+
+export async function sync({ now = new Date(), fetchImpl = fetch, paths = outputPaths, adapters, studiosPath = studioPath, discoveryOptions } = {}) {
+  adapters ||= [...registeredStudios, ...(await readStudios(studiosPath)).map((studio) => adapterForDiscoveredStudio(studio, discoveryOptions))];
   const previous = await readStore(paths[0]);
   const priorScenes = previous.scenes || [];
   const priorStatuses = new Map((previous.studios || []).map((status) => [status.id, status]));
