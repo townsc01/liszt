@@ -34,7 +34,7 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
       if (url.pathname === "/api/scenes") {
         const data = await readStore(cataloguePath);
         response.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-        return response.end(JSON.stringify(data));
+        return response.end(JSON.stringify({ ...data, enrichmentPending: !!enrichmentInProgress }));
       }
       if (url.pathname === "/api/refresh") {
         if (request.method !== "POST") {
@@ -45,12 +45,12 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
           generation++;
           if (enrichmentInProgress) await enrichmentInProgress;
           const data = await syncCatalogue();
-          setImmediate(startEnrichment);
+          startEnrichment();
           return data;
         }).finally(() => { refreshInProgress = null; });
         const data = await refreshInProgress;
         response.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-        return response.end(JSON.stringify(data));
+        return response.end(JSON.stringify({ ...data, enrichmentPending: !!enrichmentInProgress }));
       }
       if (url.pathname === "/api/video") {
         const id = url.searchParams.get("scene");

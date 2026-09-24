@@ -17,6 +17,7 @@ const catalogueUrl = document.body.dataset.catalogueUrl || "./catalogue.json";
 const refreshUrl = document.body.dataset.refreshUrl;
 let scenes = [];
 let sourceStatuses = [];
+let enrichmentTimer = null;
 
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 const parseDate = (value) => new Date(`${value}T12:00:00Z`);
@@ -83,6 +84,14 @@ studio.addEventListener("change", () => {
   render();
 });
 
+async function pollEnrichment() {
+  try {
+    await loadCatalogue();
+  } catch {
+    enrichmentTimer = setTimeout(pollEnrichment, 10_000);
+  }
+}
+
 function applyCatalogue(data) {
   scenes = data.scenes;
   const statuses = data.studios || [];
@@ -93,10 +102,13 @@ function applyCatalogue(data) {
   const requestedStudio = new URL(location.href).searchParams.get("studio");
   const desiredStudio = selectedStudio !== "all" ? selectedStudio : requestedStudio;
   if ([...studio.options].some((option) => option.value === desiredStudio)) studio.value = desiredStudio;
-  notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("");
+  notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("") +
+    (data.enrichmentPending ? '<div class="notice">Checking Sxyprn for matching videos. New links will appear here as they are verified.</div>' : "");
   lastChecked.textContent = data.lastChecked ? new Date(data.lastChecked).toLocaleString("en", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Not yet checked";
   renderSources();
   render();
+  clearTimeout(enrichmentTimer);
+  if (data.enrichmentPending) enrichmentTimer = setTimeout(pollEnrichment, 10_000);
 }
 
 async function loadCatalogue({ refreshSources = false } = {}) {

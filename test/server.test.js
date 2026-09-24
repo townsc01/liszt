@@ -25,7 +25,10 @@ test("POST /api/refresh syncs sources and returns the refreshed catalogue", asyn
     const response = await fetch(`${origin}/api/refresh`, { method: "POST" });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("cache-control"), "no-store");
-    assert.deepEqual(await response.json(), catalogue);
+    const body = await response.json();
+    assert.equal(typeof body.enrichmentPending, "boolean");
+    delete body.enrichmentPending;
+    assert.deepEqual(body, catalogue);
   });
   assert.equal(calls, 1);
 });
@@ -42,7 +45,7 @@ test("server serves the dashboard and the catalogue API", async () => {
       assert.match(await page.text(), /Liszt — Recent releases/);
       const response = await fetch(`${origin}/api/scenes`);
       assert.equal(response.status, 200);
-      assert.deepEqual(await response.json(), catalogue);
+      assert.deepEqual(await response.json(), { ...catalogue, enrichmentPending: false });
     });
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -70,6 +73,21 @@ test("simultaneous manual refresh requests share one source sync", async () => {
     assert.deepEqual(responses.map(({ status }) => status), [200, 200]);
   });
   assert.equal(calls, 1);
+});
+
+test("manual refresh returns while Sxyprn matching continues", async () => {
+  let finishEnrichment;
+  const pending = new Promise((resolve) => { finishEnrichment = resolve; });
+  await withServer({ syncCatalogue: async () => ({ scenes: [] }), enrichCatalogue: async () => pending }, async (origin) => {
+    const refreshed = await fetch(`${origin}/api/refresh`, { method: "POST" });
+    assert.equal((await refreshed.json()).enrichmentPending, true);
+    const during = await fetch(`${origin}/api/scenes`);
+    assert.equal((await during.json()).enrichmentPending, true);
+    finishEnrichment();
+    await new Promise((resolve) => setImmediate(resolve));
+    const after = await fetch(`${origin}/api/scenes`);
+    assert.equal((await after.json()).enrichmentPending, false);
+  });
 });
 
 test("video endpoint resolves a fresh stream only for a linked scene", async () => {

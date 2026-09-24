@@ -39,6 +39,14 @@ function hasPerformer(scene, title) {
   });
 }
 
+function sceneCode(scene) {
+  return scene.studioId === "mambo-perv" ? String(scene.title).match(/\bOB\d{3,}\b/i)?.[0].toLowerCase() : null;
+}
+
+function hasSceneEvidence(scene, title, code) {
+  return hasPerformer(scene, title) || (code && new RegExp(`\\b${code}\\b`, "i").test(title));
+}
+
 export function searchSlug(value) {
   return String(value || "").replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\/]/g, " ")
     .trim().replace(/\s+/g, "-");
@@ -69,10 +77,11 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
 
   return async (scene) => {
     const names = [...new Set((scene.performers || []).map(performerName).filter(Boolean))].slice(0, 2);
-    if (!names.length) return [];
+    const code = sceneCode(scene);
+    if (!names.length && !code) return [];
     const performerWords = new Set(names.flatMap(words));
     const titleQuery = titleWords(scene.title).filter((word) => !performerWords.has(word)).slice(0, 5).join(" ");
-    const queries = [...names, titleQuery].filter(Boolean);
+    const queries = [...names, titleQuery, code].filter(Boolean);
     const candidates = new Map();
     let successfulSearches = 0;
     for (const query of queries) {
@@ -80,7 +89,7 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
         const page = await search(query);
         successfulSearches++;
         for (const item of page.videos || []) {
-          if (!validSxyprnUrl(item.url) || !hasPerformer(scene, item.title)) continue;
+          if (!validSxyprnUrl(item.url) || !hasSceneEvidence(scene, item.title, code)) continue;
           const score = titleScore(scene.title, item.title);
           if (score >= 0.75) candidates.set(item.url, { item, score });
         }
@@ -98,7 +107,7 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
         const detail = await details(item.url);
         successfulDetails++;
         if (validSxyprnUrl(detail.url) && detail.url === item.url && detail.streamUrl &&
-            hasPerformer(scene, detail.title) && titleScore(scene.title, detail.title) >= 0.75) {
+            hasSceneEvidence(scene, detail.title, code) && titleScore(scene.title, detail.title) >= 0.75) {
           verified.push({ url: detail.url, score: titleScore(scene.title, detail.title), isExternal: detail.isExternal });
           if (verified.length >= maxMatches) break;
         }
