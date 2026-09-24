@@ -2,6 +2,7 @@ import { studio as lancelotStylesEvolution } from "./lancelot-styles-evolution.j
 import { studio as mamboPerv } from "./mambo-perv.js";
 import { studio as tushy } from "./tushy.js";
 import { studio as bangOriginals } from "./bang-originals.js";
+import { studio as maximoGarcia } from "./maximo-garcia.js";
 
 /** The complete set of studio adapters run by the catalogue sync. */
-export const studios = [lancelotStylesEvolution, mamboPerv, tushy, bangOriginals];
+export const studios = [lancelotStylesEvolution, mamboPerv, tushy, bangOriginals, maximoGarcia];
