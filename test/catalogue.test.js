@@ -166,18 +166,23 @@ test("Tushy polls all TPDB pages with bearer auth and confirms empty results", a
     const requestUrl = new URL(url);
     const data = requestUrl.pathname === "/sites"
       ? [{ id: 77, name: "Tushy", short_name: "tushy" }]
+      : requestUrl.pathname.startsWith("/performers/")
+        ? { id: requestUrl.pathname.split("/").at(-1), extras: { gender: requestUrl.pathname.endsWith("female") ? "Female" : "Male" } }
       : Number(requestUrl.searchParams.get("page")) === 1
-        ? Array.from({ length: 100 }, (_, index) => ({ id: `scene-${index}`, title: `Scene ${index}`, date: "2026-09-20" }))
-        : [{ id: "last-scene", title: "Last scene", date: "2026-09-21" }];
-    return { ok: true, json: async () => ({ data }) };
+        ? Array.from({ length: 100 }, (_, index) => ({ id: `scene-${index}`, title: `Scene ${index}`, date: "2026-09-20", ...(index === 0 ? { performers: [{ id: "female", name: "Female Performer" }] } : {}) }))
+        : [{ id: "last-scene", title: "Last scene", date: "2026-09-21", performers: [{ id: "male", name: "Male Performer" }] }];
+    return { ok: true, status: 200, json: async () => ({ data }) };
   } });
+  const sceneRequests = requests.filter(({ url }) => new URL(url).pathname === "/scenes");
   assert.equal(result.scenes.length, 101);
-  assert.deepEqual(requests.map(({ url }) => new URL(url).pathname), ["/sites", "/scenes", "/scenes"]);
-  assert.deepEqual(requests.slice(1).map(({ url }) => new URL(url).searchParams.get("page")), ["1", "2"]);
-  assert.ok(requests.slice(1).every(({ url }) => new URL(url).searchParams.get("site_id") === "77"));
-  assert.ok(requests.slice(1).every(({ url }) => new URL(url).searchParams.get("date") === "2026-06-26"));
+  assert.deepEqual(requests.slice(0, 3).map(({ url }) => new URL(url).pathname), ["/sites", "/scenes", "/scenes"]);
+  assert.deepEqual(sceneRequests.map(({ url }) => new URL(url).searchParams.get("page")), ["1", "2"]);
+  assert.ok(sceneRequests.every(({ url }) => new URL(url).searchParams.get("site_id") === "77"));
+  assert.ok(sceneRequests.every(({ url }) => new URL(url).searchParams.get("date") === "2026-06-26"));
   assert.ok(requests.every(({ authorization }) => authorization === "Bearer test-secret"));
   assert.equal(requests[0].url.includes("test-secret"), false);
+  assert.deepEqual(result.scenes[0].performers, ["Female Performer"]);
+  assert.deepEqual(result.scenes.at(-1).performers, []);
 
   let emptyCall = 0;
   const empty = await fetchTushyScenes({ apiKey: "test-secret", fetchImpl: async () => {

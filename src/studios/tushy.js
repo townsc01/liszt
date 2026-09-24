@@ -18,14 +18,14 @@ function getSceneId(record) {
   return record.id ?? record.uuid ?? record._id ?? record.external_id;
 }
 
-export function parseTpdbScene(record) {
+export function parseTpdbScene(record, performerGenders = new Map()) {
   const sourceSceneId = getSceneId(record);
   if (!sourceSceneId || !record.date || !record.title) {
     throw new Error("TPDB scene is missing its ID, date, or title");
   }
   const performers = Array.isArray(record.performers)
     ? record.performers
-      .filter((performer) => String(performer?.extras?.gender ?? performer?.gender ?? "").trim().toLowerCase() === "female")
+      .filter((performer) => String(performer?.extras?.gender ?? performer?.gender ?? performerGenders.get(String(performer?.id ?? performer?.uuid ?? performer?._id)) ?? "").trim().toLowerCase() === "female")
       .map((performer) => performer?.name?.trim())
       .filter(Boolean)
     : [];
@@ -55,6 +55,38 @@ async function requestJson(url, fetchImpl, apiKey) {
   const result = await response.json();
   if (!result || !Array.isArray(result.data)) throw new Error("TPDB returned an invalid response");
   return result.data;
+}
+
+async function requestPerformer(url, fetchImpl, apiKey) {
+  const response = await fetchImpl(url, {
+    headers: { authorization: `Bearer ${apiKey}`, accept: "application/json" },
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`TPDB performer lookup failed with HTTP ${response.status}`);
+  const result = await response.json();
+  if (!result || !result.data || typeof result.data !== "object") throw new Error("TPDB returned an invalid performer response");
+  return result.data;
+}
+
+async function resolvePerformerGenders(records, fetchImpl, apiKey) {
+  const performers = new Map();
+  for (const record of records) {
+    for (const performer of record.performers || []) {
+      const identifier = performer?.id ?? performer?.uuid ?? performer?._id;
+      const gender = performer?.extras?.gender ?? performer?.gender;
+      if (identifier && !gender && !performers.has(String(identifier))) performers.set(String(identifier), null);
+    }
+  }
+  const queue = [...performers.keys()];
+  await Promise.all(Array.from({ length: Math.min(8, queue.length) }, async () => {
+    while (queue.length) {
+      const identifier = queue.shift();
+      const url = `${API_BASE_URL}/performers/${encodeURIComponent(identifier)}`;
+      const performer = await requestPerformer(url, fetchImpl, apiKey);
+      performers.set(identifier, performer?.extras?.gender ?? performer?.gender ?? "");
+    }
+  }));
+  return performers;
 }
 
 async function findTushySite(fetchImpl, apiKey) {
@@ -87,7 +119,8 @@ export async function fetchTushyScenes({ now = new Date(), days = 90, fetchImpl 
     const batch = await fetchPage(page, fetchImpl, apiKey, site.id, cutoff);
     records.push(...batch);
     if (batch.length < PER_PAGE) {
-      const scenes = records.map(parseTpdbScene);
+      const performerGenders = await resolvePerformerGenders(records, fetchImpl, apiKey);
+      const scenes = records.map((record) => parseTpdbScene(record, performerGenders));
       return { scenes, verifiedEmpty: scenes.length === 0 };
     }
   }
