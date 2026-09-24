@@ -1,3 +1,5 @@
+import { epornerOverrides } from "./eporner-overrides.js";
+
 const REQUEST_TIMEOUT_MS = 4_000;
 const MAX_CANDIDATES = 3;
 const COMMON_WORDS = new Set(["a", "an", "and", "for", "in", "of", "on", "the", "to", "with"]);
@@ -67,6 +69,8 @@ export function createEpornerLookup({ baseUrl, fetchImpl = fetch } = {}) {
   if (!baseUrl) return null;
   const base = new URL(baseUrl);
   if (!["http:", "https:"].includes(base.protocol)) throw new Error("Invalid Lustpress URL");
+  const searchCache = new Map();
+  const getCache = new Map();
 
   return async (scene) => {
     if (!Array.isArray(scene.performers) || !scene.performers.length) return null;
@@ -75,24 +79,31 @@ export function createEpornerLookup({ baseUrl, fetchImpl = fetch } = {}) {
     const titleQuery = titleWords(scene.title).filter((word) => !performerWords.has(word)).slice(0, 4).join(" ");
     const queries = [...new Set([...performerNames.slice(0, 2), titleQuery].filter(Boolean))];
     const candidates = new Map();
+    let successfulSearches = 0;
     for (const query of queries) {
       try {
-        for (const item of await searchVideos(query, fetchImpl)) {
+        if (!searchCache.has(query)) searchCache.set(query, searchVideos(query, fetchImpl));
+        for (const item of await searchCache.get(query)) {
           if (!/^[A-Za-z0-9]{11}$/.test(item.id || "") || !validEpornerUrl(item.url)) continue;
           const score = titleScore(scene.title, item.title);
           if (score >= 0.55 && (!candidates.has(item.id) || candidates.get(item.id).score < score)) candidates.set(item.id, { score, item });
         }
+        successfulSearches++;
       } catch {
         // One failed search must not prevent other queries.
       }
     }
+    if (!successfulSearches) throw new Error("Eporner search unavailable");
 
     const ranked = [...candidates].sort((a, b) => b[1].score - a[1].score).slice(0, MAX_CANDIDATES);
     const verified = [];
+    let successfulGets = 0;
     for (const [id, { item }] of ranked) {
       try {
         const lustpressId = new URL(item.url).pathname.startsWith("/video-") ? `video-${id}` : id;
-        const result = await request(base, `/eporner/get?id=${encodeURIComponent(lustpressId)}`, fetchImpl);
+        if (!getCache.has(lustpressId)) getCache.set(lustpressId, request(base, `/eporner/get?id=${encodeURIComponent(lustpressId)}`, fetchImpl));
+        const result = await getCache.get(lustpressId);
+        successfulGets++;
         const score = titleScore(scene.title, result.data?.title);
         const sourcePath = validEpornerUrl(result.source) ? new URL(result.source).pathname : "";
         const sameVideo = sourcePath.startsWith(`/video-${id}/`) || sourcePath.startsWith(`/hd-porn/${id}/`);
@@ -103,14 +114,18 @@ export function createEpornerLookup({ baseUrl, fetchImpl = fetch } = {}) {
         // A broken candidate is simply not verified.
       }
     }
+    if (ranked.length && !successfulGets) throw new Error("Lustpress verification unavailable");
     verified.sort((a, b) => b.score - a.score);
     if (verified.length > 1 && verified[0].score - verified[1].score < 0.1) return null;
     return verified[0]?.url || null;
   };
 }
 
-export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concurrency = 4 } = {}) {
-  if (!lookup) return scenes;
+export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concurrency = 4, now = new Date() } = {}) {
+  if (!lookup) return scenes.map((scene) => {
+    const override = epornerOverrides.get(scene.id);
+    return override ? { ...scene, epornerUrls: override.filter(validEpornerUrl) } : scene;
+  });
   const previous = new Map(previousScenes.map((scene) => [scene.id, scene]));
   const output = [...scenes];
   let next = 0;
@@ -118,17 +133,26 @@ export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concu
     while (next < scenes.length) {
       const index = next++;
       const scene = scenes[index];
+      const override = epornerOverrides.get(scene.id);
+      if (override) {
+        output[index] = { ...scene, epornerUrls: override.filter(validEpornerUrl) };
+        continue;
+      }
       const prior = previous.get(scene.id);
-      if (prior?.epornerUrl && prior.title === scene.title && prior.releaseDate === scene.releaseDate &&
-          JSON.stringify(prior.performers) === JSON.stringify(scene.performers) && validEpornerUrl(prior.epornerUrl)) {
-        output[index] = { ...scene, epornerUrl: prior.epornerUrl };
+      const unchanged = prior && prior.title === scene.title && prior.releaseDate === scene.releaseDate &&
+        JSON.stringify(prior.performers) === JSON.stringify(scene.performers);
+      const priorUrls = unchanged ? (prior.epornerUrls || (prior.epornerUrl ? [prior.epornerUrl] : [])).filter(validEpornerUrl) : [];
+      const checkedAt = unchanged ? Date.parse(prior.epornerCheckedAt) : NaN;
+      if (Number.isFinite(checkedAt) && now.getTime() - checkedAt < 86_400_000 && now.getTime() >= checkedAt) {
+        output[index] = { ...scene, ...(priorUrls.length ? { epornerUrls: priorUrls } : {}), epornerCheckedAt: prior.epornerCheckedAt };
         continue;
       }
       try {
         const url = await lookup(scene);
-        if (url && validEpornerUrl(url)) output[index] = { ...scene, epornerUrl: url };
+        output[index] = { ...scene, ...(url && validEpornerUrl(url) ? { epornerUrls: [url] } : {}), epornerCheckedAt: now.toISOString() };
       } catch {
         // Eporner is optional enrichment; studio records remain available.
+        if (priorUrls.length) output[index] = { ...scene, epornerUrls: priorUrls, epornerCheckedAt: prior.epornerCheckedAt };
       }
     }
   }));

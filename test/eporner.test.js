@@ -64,20 +64,35 @@ test("malformed and off-site URLs are rejected", async () => {
 
 test("empty searches and Lustpress failures leave scenes unlinked", async () => {
   assert.equal(await api({ candidates: [] }).lookup(scene), null);
-  assert.equal(await api({ searchError: true }).lookup(scene), null);
+  await assert.rejects(api({ searchError: true }).lookup(scene), /Eporner search unavailable/);
   const path = join(tmpdir(), `liszt-eporner-${process.pid}.json`);
   const adapter = { id: "studio", name: "Studio", authority: { name: "Test", url: "https://source.example" }, fetchScenes: async () => ({ scenes: [{ ...scene, id: undefined }], verifiedEmpty: false }) };
   const catalogue = await sync({ now: new Date("2026-09-24T12:00:00Z"), paths: [path], adapters: [adapter], epornerLookup: async () => { throw new Error("Lustpress down"); } });
   assert.equal(catalogue.scenes.length, 1);
   assert.equal(catalogue.studios[0].error, null);
-  assert.equal(catalogue.scenes[0].epornerUrl, undefined);
+  assert.equal(catalogue.scenes[0].epornerUrls, undefined);
 });
 
 test("existing verified links survive refresh and unverified rows show only Source", async () => {
-  const [linked] = await enrichEpornerLinks([scene], [{ ...scene, epornerUrl: url }], async () => { throw new Error("should not recheck"); });
-  assert.equal(linked.epornerUrl, url);
+  const checkedAt = new Date().toISOString();
+  const [linked] = await enrichEpornerLinks([scene], [{ ...scene, epornerUrls: [url], epornerCheckedAt: checkedAt }], async () => { throw new Error("should not recheck"); });
+  assert.deepEqual(linked.epornerUrls, [url]);
   assert.match(renderSceneLinks(linked), /Eporner ↗/);
   assert.match(renderSceneLinks(scene), /Source ↗/);
   assert.doesNotMatch(renderSceneLinks(scene), /Eporner ↗/);
-  assert.doesNotMatch(renderSceneLinks({ ...scene, epornerUrl: "https://evil.example/" }), /Eporner ↗/);
+  assert.doesNotMatch(renderSceneLinks({ ...scene, epornerUrls: ["https://evil.example/"] }), /Eporner ↗/);
+  const [negative] = await enrichEpornerLinks([scene], [{ ...scene, epornerCheckedAt: checkedAt }], async () => { throw new Error("negative result should be cached"); });
+  assert.equal(negative.epornerCheckedAt, checkedAt);
+  assert.equal(negative.epornerUrls, undefined);
+});
+
+test("the user-confirmed Naty Heat scene has both Eporner uploads", async () => {
+  const naty = { ...scene, id: "lancelot-styles-evolution:4683299", title: "Newcomer Naty Heat debuts with her first anal scene", performers: ["Naty Heat"] };
+  const [linked] = await enrichEpornerLinks([naty], [], async () => { throw new Error("override should bypass lookup"); });
+  assert.deepEqual(linked.epornerUrls, [
+    "https://www.eporner.com/video-he0UuISLwzf/novata-com-sua-primeira-cena-anal/",
+    "https://www.eporner.com/video-08x1miC2WBi/-/",
+  ]);
+  assert.match(renderSceneLinks(linked), /Eporner 1 ↗/);
+  assert.match(renderSceneLinks(linked), /Eporner 2 ↗/);
 });
