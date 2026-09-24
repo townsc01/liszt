@@ -35,7 +35,7 @@ npm start
 
 Open <http://localhost:3000>. `npm run sync` writes `data/catalogue.json`; `LISZT_DATA_PATH` overrides that path, and `PORT` overrides the server port. Deploy the Node server on Render using the same start command. The server serves the dashboard and `GET /api/scenes`; `POST /api/refresh` runs the registered adapters and returns the updated catalogue. The dashboard has a searchable, sortable release ledger, a studio filter, source status, scene links, and a **Refresh data** button. Concurrent refresh requests share one sync.
 
-Fetching is server-side. If an existing FlareSolverr service is available, `FLARESOLVERR_URL` can point to its `/v1` endpoint for retries after HTTP 403 responses. Liszt does not start that service. The [watchlist mockups](docs/mockups/watchlist.html) are illustrative and contain no live scene data.
+Fetching is server-side. The [watchlist mockups](docs/mockups/watchlist.html) are illustrative and contain no live scene data.
 
 ## Possible next steps
 
