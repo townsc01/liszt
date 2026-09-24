@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liszt watchlist design studies</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; padding:28px 16px 60px; background:light-dark(#e9e7e1,#111718); color:light-dark(#202725,#e8ece9); font:14px system-ui,sans-serif; }
+.preview { max-width:960px; margin:0 auto; }
+.preview > h1 { font:32px Georgia,serif; margin:0 0 8px; }
+.preview > p { max-width:680px; line-height:1.5; margin:0 0 19px; color:light-dark(#586a63,#afc0b9); }
+.switcher { display:flex; gap:8px; margin:0 0 15px; }
+.switcher button { border:1px solid light-dark(#bbc9c0,#49615b); border-radius:999px; background:transparent; color:inherit; padding:9px 14px; font:inherit; cursor:pointer; }
+.switcher button[aria-pressed="true"] { background:light-dark(#20443c,#b7d6c7); color:light-dark(#fff,#10221e); }
+#liszt-designs > section[hidden] { display:none; }
+</style>
+<style>
+#liszt-designs { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+#liszt-designs .stage { min-height: 505px; background: light-dark(#f2efe9,#13191c); color: light-dark(#202725,#e8ece9); border-radius: 16px; overflow: hidden; box-shadow: 0 18px 45px light-dark(#16251b20,#0006); }
+#liszt-designs .shell { display:grid; grid-template-columns: 162px 1fr; min-height:505px; }
+#liszt-designs .sidebar { background: light-dark(#172c2b,#102526); color:#e5f0e7; padding:24px 17px; display:flex; flex-direction:column; gap:34px; }
+#liszt-designs .brand { font-family: Georgia, serif; font-size:26px; letter-spacing:-1px; }
+#liszt-designs .brand small { display:block; font: 11px ui-sans-serif,system-ui; letter-spacing:2px; text-transform:uppercase; color:#9bbcb2; margin-top:2px; }
+#liszt-designs .nav { font-size:13px; display:grid; gap:7px; }
+#liszt-designs .nav span { padding:9px 10px; border-radius:7px; }
+#liszt-designs .nav .on { background:#ffffff1d; }
+#liszt-designs .sidefoot { margin-top:auto; font-size:11px; color:#a0b9b0; line-height:1.6; }
+#liszt-designs .main { padding:29px 32px 32px; min-width:0; }
+#liszt-designs .eyebrow { text-transform:uppercase; letter-spacing:1.5px; font-size:10px; font-weight:600; color: light-dark(#668379,#9cbdb2); }
+#liszt-designs h2 { margin:4px 0 7px; font: 34px Georgia,serif; font-weight:400; letter-spacing:-1px; }
+#liszt-designs .dek { margin:0 0 25px; font-size:12px; color:light-dark(#687672,#a7b6b2); }
+#liszt-designs .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:17px; font-size:11px; }
+#liszt-designs .chip { padding:6px 10px; border:1px solid light-dark(#d5ddd6,#3b5150); border-radius:999px; }
+#liszt-designs .chip.active { background:light-dark(#dfeae1,#25413c); border-color:transparent; }
+#liszt-designs .fresh { margin-left:auto; color:light-dark(#687672,#a7b6b2); }
+#liszt-designs .group { margin-top:15px; }
+#liszt-designs .grouphead { border-bottom:1px solid light-dark(#ccd7cd,#3b504b); padding:0 0 7px; display:flex; justify-content:space-between; align-items:baseline; }
+#liszt-designs .grouphead strong { font:18px Georgia,serif; font-weight:400; }
+#liszt-designs .grouphead span { font-size:10px; color:light-dark(#687672,#a7b6b2); }
+#liszt-designs .row { display:grid; grid-template-columns:52px 78px minmax(100px,1fr) minmax(90px,1.1fr); gap:12px; padding:10px 0; border-bottom:1px solid light-dark(#e1e5de,#2b3a39); align-items:center; font-size:12px; }
+#liszt-designs .date { font:18px Georgia,serif; }
+#liszt-designs .date small { display:block; font:10px ui-sans-serif,system-ui; color:light-dark(#687672,#a7b6b2); }
+#liszt-designs .thumb { width:78px; height:49px; border-radius:5px; background:linear-gradient(135deg,light-dark(#acb8a4,#455d52),light-dark(#627773,#203f3c)); display:grid;place-items:center;color:#ffffffce;font:10px ui-sans-serif,system-ui; }
+#liszt-designs .scene { font-weight:600; line-height:1.35; }
+#liszt-designs .studio { display:block; margin-top:3px; font-size:10px; font-weight:400; color:light-dark(#687672,#a7b6b2); }
+#liszt-designs .performers { line-height:1.35; }
+#liszt-designs .release-link { display:block; margin-top:5px; font-size:11px; font-weight:500; color:light-dark(#286c5c,#b7ddce); }
+#liszt-designs .alt.stage { background:light-dark(#ede7dc,#171c20); }
+#liszt-designs .alt .sidebar { background:light-dark(#342d35,#29232d); }
+#liszt-designs .alt .main { padding:29px 32px; }
+#liszt-designs .alt .mast { display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid light-dark(#c9bdb2,#50474d); padding-bottom:15px; }
+#liszt-designs .alt h2 { margin-bottom:0; }
+#liszt-designs .alt .count { font:25px Georgia,serif; }
+#liszt-designs .alt .count small { font:10px ui-sans-serif,system-ui; display:block; text-transform:uppercase; letter-spacing:1px; color:light-dark(#7a6d70,#b7a9ad); }
+#liszt-designs .cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; }
+#liszt-designs .tile { background:light-dark(#faf8f2,#242c2e); border-radius:9px; overflow:hidden; min-width:0; }
+#liszt-designs .art { height:91px; background:linear-gradient(130deg,light-dark(#7a8f8a,#42645a),light-dark(#d1aa94,#86695e)); display:flex; align-items:flex-end; padding:9px; font:11px Georgia,serif; color:white; }
+#liszt-designs .tile:nth-child(2) .art { background:linear-gradient(130deg,#5b6572,#c9ab8e); }
+#liszt-designs .tile:nth-child(3) .art { background:linear-gradient(130deg,#5b7464,#b78c89); }
+#liszt-designs .tilebody { padding:12px; }
+#liszt-designs .tilebody .when { color:light-dark(#827370,#b6a8a8); font-size:10px; text-transform:uppercase; letter-spacing:.6px; }
+#liszt-designs .tilebody .title { font:17px Georgia,serif; margin:7px 0; }
+#liszt-designs .tilebody .who { font-size:11px; line-height:1.4; }
+#liszt-designs .hint { font-size:11px; color:light-dark(#7a6d70,#b7a9ad); margin:16px 0 0; }
+@media(max-width:650px){
+ #liszt-designs .shell {display:block;}
+ #liszt-designs .sidebar {padding:12px 16px; flex-direction:row; align-items:center; justify-content:space-between;}
+ #liszt-designs .nav,#liszt-designs .sidefoot {display:none;}
+ #liszt-designs .main,#liszt-designs .alt .main {padding:20px 16px;}
+ #liszt-designs .row {grid-template-columns:38px 60px 1fr; gap:8px;}
+ #liszt-designs .row .performers {grid-column:3; margin-top:-10px; color:light-dark(#687672,#a7b6b2);}
+ #liszt-designs .thumb {width:60px;height:42px;}
+ #liszt-designs .cards {grid-template-columns:repeat(2,minmax(0,1fr));}
+ #liszt-designs .tile:nth-child(3) {display:none;}
+ #liszt-designs .stage {min-height:540px;}
+}
+</style>
+</head>
+<body>
+<main class="preview">
+<h1>Liszt watchlist</h1>
+<p>Two early layout studies. Scene names, performers, thumbnails and release links are illustrative placeholders. The release ledger is the preferred direction for the first prototype.</p>
+<nav class="switcher" aria-label="Choose a mockup">
+<button type="button" data-show="Release ledger" aria-pressed="true">Release ledger</button>
+<button type="button" data-show="Visual cards" aria-pressed="false">Visual cards</button>
+</nav>
+
+<div id="liszt-designs" class="designs" aria-label="Liszt dashboard layout ideas">
+ <section data-variant="Release ledger" aria-label="Release ledger design">
+  <div class="stage shell">
+   <aside class="sidebar"><div class="brand">liszt<small>Scene index</small></div><div class="nav"><span class="on">Watchlist</span><span>Studios</span></div><div class="sidefoot">Lancelot Styles Evolution<br>Daily source check</div></aside>
+   <div class="main"><div class="eyebrow">The past 90 days</div><h2>Recent releases</h2><p class="dek">One entry per scene, reconciled against the studio’s catalogue.</p>
+    <div class="toolbar"><span class="chip active">All releases</span><span class="chip">Lancelot Styles Evolution</span><span class="fresh">Checked today</span></div>
+    <div class="group"><div class="grouphead"><strong>September</strong><span>3 releases shown · sample content</span></div>
+     <div class="row"><div class="date">22<small>Sep</small></div><div class="thumb">Thumbnail</div><div class="scene">Scene 001<span class="studio">Lancelot Styles Evolution</span><span class="release-link">Studio release ↗</span></div><div class="performers">Performer A · Performer B</div></div>
+     <div class="row"><div class="date">18<small>Sep</small></div><div class="thumb">Thumbnail</div><div class="scene">Scene 002<span class="studio">Lancelot Styles Evolution</span><span class="release-link">Studio release ↗</span></div><div class="performers">Performer C</div></div>
+     <div class="row"><div class="date">09<small>Sep</small></div><div class="thumb">Thumbnail</div><div class="scene">Scene 003<span class="studio">Lancelot Styles Evolution</span><span class="release-link">Studio release ↗</span></div><div class="performers">Performer D · Performer E</div></div>
+    </div><div class="group"><div class="grouphead"><strong>August</strong><span>1 release shown · sample content</span></div>
+     <div class="row"><div class="date">27<small>Aug</small></div><div class="thumb">Thumbnail</div><div class="scene">Scene 004<span class="studio">Lancelot Styles Evolution</span><span class="release-link">Studio release ↗</span></div><div class="performers">Performer F</div></div>
+    </div>
+   </div>
+  </div>
+ </section>
+ <section data-variant="Visual cards" aria-label="Visual cards design" hidden>
+  <div class="stage shell alt">
+   <aside class="sidebar"><div class="brand">liszt<small>Scene index</small></div><div class="nav"><span class="on">Watchlist</span><span>Studios</span></div><div class="sidefoot">Lancelot Styles Evolution<br>Daily source check</div></aside>
+   <div class="main"><div class="eyebrow">The past 90 days</div><div class="mast"><h2>The watchlist</h2><div class="count">04<small>Sample scenes</small></div></div>
+    <div class="cards">
+     <article class="tile"><div class="art">Studio thumbnail</div><div class="tilebody"><div class="when">22 September · LSE</div><div class="title">Scene 001</div><div class="who">Performer A · Performer B</div><span class="release-link">Studio release ↗</span></div></article>
+     <article class="tile"><div class="art">Studio thumbnail</div><div class="tilebody"><div class="when">18 September · LSE</div><div class="title">Scene 002</div><div class="who">Performer C</div><span class="release-link">Studio release ↗</span></div></article>
+     <article class="tile"><div class="art">Studio thumbnail</div><div class="tilebody"><div class="when">09 September · LSE</div><div class="title">Scene 003</div><div class="who">Performer D · Performer E</div><span class="release-link">Studio release ↗</span></div></article>
+    </div><p class="hint">Illustrative placeholders. The product will use scene thumbnails and links from the studio.</p>
+   </div>
+  </div>
+ </section>
+</div>
+
+</main>
+<script>
+const buttons = [...document.querySelectorAll(".switcher button")];
+const variants = [...document.querySelectorAll("#liszt-designs > section")];
+for (const button of buttons) {
+  button.addEventListener("click", () => {
+    for (const item of buttons) item.setAttribute("aria-pressed", String(item === button));
+    for (const variant of variants) variant.hidden = variant.dataset.variant !== button.dataset.show;
+  });
+}
+</script>
+</body>
+</html>
