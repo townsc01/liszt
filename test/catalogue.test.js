@@ -133,3 +133,42 @@ test("AnalVids retries transient network failures and identifies exhausted URL",
   assert.equal(calls, 3);
   await assert.rejects(fetchAnalVidsText(url, async () => { throw new TypeError("fetch failed"); }, { delay: async () => {} }), /fetch failed for https:\/\/www\.analvids\.com\/watch\/123\/example after 3 attempts/);
 });
+
+test("shared page fetch falls back to FlareSolverr on HTTP 403", async () => {
+  const { fetchPageText } = await import("../src/fetch-page.js");
+  const priorEndpoint = process.env.FLARESOLVERR_URL;
+  process.env.FLARESOLVERR_URL = "http://flaresolverr:8191/v1";
+  const requests = [];
+  try {
+    const html = await fetchPageText("https://studio.example/videos", async (url, options) => {
+      requests.push({ url, options });
+      if (url === "https://studio.example/videos") return { ok: false, status: 403 };
+      return { ok: true, json: async () => ({ status: "ok", solution: { status: 200, response: "<html>solved</html>" } }) };
+    }, { source: "Example Studio" });
+    assert.equal(html, "<html>solved</html>");
+    assert.equal(requests.length, 2);
+    assert.equal(requests[1].url, "http://flaresolverr:8191/v1");
+    assert.deepEqual(JSON.parse(requests[1].options.body), { cmd: "request.get", url: "https://studio.example/videos", maxTimeout: 60_000 });
+  } finally {
+    if (priorEndpoint === undefined) delete process.env.FLARESOLVERR_URL;
+    else process.env.FLARESOLVERR_URL = priorEndpoint;
+  }
+});
+
+test("shared page fetch does not call FlareSolverr for successful pages", async () => {
+  const { fetchPageText } = await import("../src/fetch-page.js");
+  const priorEndpoint = process.env.FLARESOLVERR_URL;
+  process.env.FLARESOLVERR_URL = "http://flaresolverr:8191/v1";
+  let calls = 0;
+  try {
+    const html = await fetchPageText("https://studio.example/videos", async () => {
+      calls++;
+      return { ok: true, text: async () => "ordinary html" };
+    });
+    assert.equal(html, "ordinary html");
+    assert.equal(calls, 1);
+  } finally {
+    if (priorEndpoint === undefined) delete process.env.FLARESOLVERR_URL;
+    else process.env.FLARESOLVERR_URL = priorEndpoint;
+  }
+});

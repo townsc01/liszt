@@ -1,17 +1,16 @@
-class NonRetryableResponseError extends Error {}
+import { fetchPageText } from "../fetch-page.js";
 
 /** Fetch source pages with bounded retries and a useful failure location. */
 export async function fetchAnalVidsText(url, fetchImpl, { attempts = 3, delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {}) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      const response = await fetchImpl(url, { headers: { "user-agent": "Liszt catalogue updater/1.0" } });
-      if (response.ok) return await response.text();
-      if (response.status < 500 && response.status !== 429) {
-        return Promise.reject(new NonRetryableResponseError(`AnalVids returned ${response.status} for ${url}`));
-      }
-      if (attempt === attempts) throw new Error(`AnalVids returned ${response.status} for ${url} after ${attempts} attempts`);
+      return await fetchPageText(url, fetchImpl, { source: "AnalVids" });
     } catch (error) {
-      if (error instanceof NonRetryableResponseError) throw error;
+      if (error.status && error.status < 500 && error.status !== 429) throw error;
+      if (/FlareSolverr/.test(error.message)) throw error;
+      if (error.status && attempt === attempts) {
+        throw new Error(`AnalVids returned ${error.status} for ${url} after ${attempts} attempts`, { cause: error });
+      }
       if (attempt === attempts) throw new Error(`AnalVids fetch failed for ${url} after ${attempts} attempts: ${error.message}`, { cause: error });
     }
     await delay(500 * 2 ** (attempt - 1));
