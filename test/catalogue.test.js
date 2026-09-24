@@ -166,10 +166,12 @@ test("Tushy polls all TPDB pages with bearer auth and confirms empty results", a
     const requestUrl = new URL(url);
     const data = requestUrl.pathname === "/sites"
       ? [{ id: 77, name: "Tushy", short_name: "tushy" }]
+      : requestUrl.pathname === "/performers"
+        ? [{ id: "female-search-result", name: "Name Only", extras: { gender: "FEMALE" } }]
       : requestUrl.pathname.startsWith("/performers/")
         ? { id: requestUrl.pathname.split("/").at(-1), extras: { gender: requestUrl.pathname.endsWith("female") ? "Female" : "Male" } }
       : Number(requestUrl.searchParams.get("page")) === 1
-        ? Array.from({ length: 100 }, (_, index) => ({ id: `scene-${index}`, title: `Scene ${index}`, date: "2026-09-20", ...(index === 0 ? { performers: [{ id: "female", name: "Female Performer" }] } : {}) }))
+        ? Array.from({ length: 100 }, (_, index) => ({ id: `scene-${index}`, title: `Scene ${index}`, date: "2026-09-20", ...(index === 0 ? { performers: [{ id: "female", name: "Female Performer" }, { name: "Name Only" }] } : {}) }))
         : [{ id: "last-scene", title: "Last scene", date: "2026-09-21", performers: [{ id: "male", name: "Male Performer" }] }];
     return { ok: true, status: 200, json: async () => ({ data }) };
   } });
@@ -181,7 +183,7 @@ test("Tushy polls all TPDB pages with bearer auth and confirms empty results", a
   assert.ok(sceneRequests.every(({ url }) => new URL(url).searchParams.get("date") === "2026-06-26"));
   assert.ok(requests.every(({ authorization }) => authorization === "Bearer test-secret"));
   assert.equal(requests[0].url.includes("test-secret"), false);
-  assert.deepEqual(result.scenes[0].performers, ["Female Performer"]);
+  assert.deepEqual(result.scenes[0].performers, ["Female Performer", "Name Only"]);
   assert.deepEqual(result.scenes.at(-1).performers, []);
 
   let emptyCall = 0;
