@@ -91,6 +91,10 @@ npm start
 ```
 
 Then open <http://localhost:3000>. Set `PORT` or `LISZT_DATA_PATH` to override the defaults.
+The dashboard’s **Refresh data** button runs every registered source adapter immediately
+and updates the ledger when the refresh finishes. Concurrent requests share the same sync,
+so repeated clicks cannot start overlapping source fetches. On the static GitHub Pages
+preview, the button instead checks for the latest catalogue published by the scheduled sync.
 
 The sync command runs every registered studio independently and writes the rolling 90-day catalogue to both the local server and GitHub Pages data files. A scheduled GitHub Actions workflow refreshes and commits those exact files every day; it can also be run manually from the Actions tab.
 

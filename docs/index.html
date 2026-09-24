@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
 </head>
-<body>
+<body data-catalogue-url="./catalogue.json">
   <div class="shell">
     <aside>
       <a class="brand" href="./" aria-label="Liszt home">Liszt<span>scene index</span></a>
@@ -21,7 +21,7 @@
     <main id="watchlist">
       <header>
         <div><p class="eyebrow">The past 90 days</p><h1>Recent releases</h1><p class="intro">A date-first ledger from each studio’s explicitly chosen catalogue authority.</p></div>
-        <div class="status"><span>Last checked</span><strong id="last-checked">Loading…</strong></div>
+        <div class="status"><span>Last checked</span><strong id="last-checked">Loading…</strong><button class="refresh" id="refresh" type="button"><span aria-hidden="true">↻</span> Refresh data</button></div>
       </header>
       <section class="controls" aria-label="Watchlist controls">
         <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search titles or performers" autocomplete="off"></label>
