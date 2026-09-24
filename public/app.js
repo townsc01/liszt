@@ -1,5 +1,5 @@
 import { renderSceneLinks } from "./scene-links.js";
-import { topEpornerUrl } from "./scene-video.js";
+import { topSxyprnUrl } from "./scene-video.js";
 
 const list = document.querySelector("#list");
 const empty = document.querySelector("#empty");
@@ -37,7 +37,7 @@ function render() {
     const date = parseDate(scene.releaseDate);
     const initials = scene.title.split(/\s+/).slice(0, 2).map((word) => word[0]).join("");
     const image = scene.thumbnailUrl ? `<img src="${escapeHtml(scene.thumbnailUrl)}" alt="">` : escapeHtml(initials);
-    const thumbnail = topEpornerUrl(scene)
+    const thumbnail = topSxyprnUrl(scene)
       ? `<a class="thumb thumb--playable" href="/watch.html?scene=${encodeURIComponent(scene.id)}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${escapeHtml(scene.title)} in a new tab">${image}<span class="thumb-play" aria-hidden="true">▶</span></a>`
       : `<div class="thumb">${image}</div>`;
     return `<article class="row" style="animation-delay:${index * 45}ms"><time class="date" datetime="${scene.releaseDate}"><strong>${date.getUTCDate().toString().padStart(2, "0")}</strong><span>${date.toLocaleDateString("en", { weekday: "short", timeZone: "UTC" })}</span></time>${thumbnail}<div class="details"><h3>${escapeHtml(scene.title)}</h3><p>${escapeHtml(scene.studio)}</p></div><div class="performers">${scene.performers.map(escapeHtml).join(" · ") || "Performers unlisted"}</div>${renderSceneLinks(scene)}</article>`;

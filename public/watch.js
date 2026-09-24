@@ -1,4 +1,4 @@
-import { epornerEmbedUrl, topEpornerUrl } from "./scene-video.js";
+import { topSxyprnUrl } from "./scene-video.js";
 
 const content = document.querySelector("#watch-content");
 
@@ -21,7 +21,7 @@ function safeExternalUrl(value) {
   }
 }
 
-function showScene(scene, sourceUrl) {
+async function showScene(scene, sourceUrl) {
   content.replaceChildren();
   const eyebrow = document.createElement("p");
   eyebrow.className = "eyebrow";
@@ -36,22 +36,18 @@ function showScene(scene, sourceUrl) {
 
   const player = document.createElement("div");
   player.className = "watch-player";
-  const iframe = document.createElement("iframe");
-  iframe.src = epornerEmbedUrl(sourceUrl);
-  iframe.title = `Video player for ${scene.title}`;
-  iframe.allow = "autoplay; fullscreen; picture-in-picture";
-  iframe.allowFullscreen = true;
-  iframe.referrerPolicy = "strict-origin-when-cross-origin";
-  player.append(iframe);
+  const loading = document.createElement("p");
+  loading.textContent = "Loading video…";
+  player.append(loading);
 
   const links = document.createElement("div");
   links.className = "watch-links";
-  const eporner = document.createElement("a");
-  eporner.href = sourceUrl;
-  eporner.target = "_blank";
-  eporner.rel = "noopener noreferrer";
-  eporner.textContent = "Open on EPORNER ↗";
-  links.append(eporner);
+  const sxyprn = document.createElement("a");
+  sxyprn.href = sourceUrl;
+  sxyprn.target = "_blank";
+  sxyprn.rel = "noopener noreferrer";
+  sxyprn.textContent = "Open on Sxyprn ↗";
+  links.append(sxyprn);
   const source = safeExternalUrl(scene.releaseUrl);
   if (source) {
     const sourceLink = document.createElement("a");
@@ -63,6 +59,23 @@ function showScene(scene, sourceUrl) {
   }
   content.append(eyebrow, heading, metadata, player, links);
   document.title = `${scene.title} · Liszt`;
+  try {
+    const response = await fetch(`/api/video?scene=${encodeURIComponent(scene.id)}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Video unavailable");
+    const data = await response.json();
+    const stream = new URL(data.url);
+    if (stream.protocol !== "https:" || stream.hostname !== "sxyprn.com") throw new Error("Invalid video URL");
+    const video = document.createElement("video");
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.src = stream.href;
+    video.setAttribute("aria-label", `Video player for ${scene.title}`);
+    video.addEventListener("error", () => { player.textContent = "Video could not play here. Open it on Sxyprn using the link below."; });
+    player.replaceChildren(video);
+  } catch {
+    player.textContent = "Video could not load here. Open it on Sxyprn using the link below.";
+  }
 }
 
 try {
@@ -72,8 +85,8 @@ try {
   if (!response.ok) throw new Error("Catalogue unavailable");
   const catalogue = await response.json();
   const scene = Array.isArray(catalogue.scenes) ? catalogue.scenes.find((item) => item.id === id) : null;
-  const sourceUrl = topEpornerUrl(scene);
-  if (scene && sourceUrl && epornerEmbedUrl(sourceUrl)) showScene(scene, sourceUrl);
+  const sourceUrl = topSxyprnUrl(scene);
+  if (scene && sourceUrl) await showScene(scene, sourceUrl);
   else showUnavailable();
 } catch {
   showUnavailable();

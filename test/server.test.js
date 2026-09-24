@@ -71,3 +71,39 @@ test("simultaneous manual refresh requests share one source sync", async () => {
   });
   assert.equal(calls, 1);
 });
+
+test("video endpoint resolves a fresh stream only for a linked scene", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "liszt-server-video-"));
+  const path = join(directory, "catalogue.json");
+  const postUrl = "https://sxyprn.com/post/6ab5422fa84b6.html";
+  let calls = 0;
+  try {
+    await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", sxyprnUrls: [postUrl] }] }));
+    await withServer({ cataloguePath: path, videoDetails: async ({ url }) => { calls++; assert.equal(url, postUrl); return { url, streamUrl: "https://sxyprn.com/cdn8/fresh-token" }; } }, async (origin) => {
+      const response = await fetch(`${origin}/api/video?scene=studio%3A1`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      assert.deepEqual(await response.json(), { url: "https://sxyprn.com/cdn8/fresh-token" });
+      const missing = await fetch(`${origin}/api/video?scene=studio%3A2`);
+      assert.equal(missing.status, 404);
+    });
+    assert.equal(calls, 1);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("video endpoint rejects an off-site stream returned by the extractor", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "liszt-server-video-unsafe-"));
+  const path = join(directory, "catalogue.json");
+  const postUrl = "https://sxyprn.com/post/6ab5422fa84b6.html";
+  try {
+    await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", sxyprnUrls: [postUrl] }] }));
+    await withServer({ cataloguePath: path, videoDetails: async ({ url }) => ({ url, streamUrl: "https://evil.example/video.mp4" }) }, async (origin) => {
+      const response = await fetch(`${origin}/api/video?scene=studio%3A1`);
+      assert.equal(response.status, 500);
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
