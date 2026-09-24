@@ -24,7 +24,10 @@ export function parseTpdbScene(record) {
     throw new Error("TPDB scene is missing its ID, date, or title");
   }
   const performers = Array.isArray(record.performers)
-    ? record.performers.map((performer) => performer?.name?.trim()).filter(Boolean)
+    ? record.performers
+      .filter((performer) => String(performer?.extras?.gender ?? performer?.gender ?? "").trim().toLowerCase() === "female")
+      .map((performer) => performer?.name?.trim())
+      .filter(Boolean)
     : [];
   const releaseUrl = record.url || `${API_BASE_URL}/scenes/${encodeURIComponent(sourceSceneId)}`;
   return {
