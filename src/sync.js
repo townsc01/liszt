@@ -1,25 +1,20 @@
-import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { reconcile, withinRollingWindow } from "./catalogue.js";
+import { withinRollingWindow } from "./catalogue.js";
+import { fetchAnalVidsScenes } from "./analvids.js";
 import { writeStore } from "./store.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const dataPath = process.env.LISZT_DATA_PATH || `${root}/data/catalogue.json`;
+const outputPaths = process.env.LISZT_DATA_PATH ? [process.env.LISZT_DATA_PATH] : [`${root}/data/catalogue.json`, `${root}/docs/catalogue.json`];
 
-export async function sync({ now = new Date() } = {}) {
-  // Fixtures keep this first cut reproducible. Source adapters can replace these
-  // reads once catalogue access and TPDB credentials have been confirmed.
-  const [studio, tpdb] = await Promise.all([
-    readFile(`${root}/fixtures/studio.json`, "utf8").then(JSON.parse),
-    readFile(`${root}/fixtures/tpdb.json`, "utf8").then(JSON.parse),
-  ]);
-  const scenes = withinRollingWindow(reconcile(studio, tpdb), now);
-  const catalogue = { lastChecked: now.toISOString(), scenes };
-  await writeStore(dataPath, catalogue);
+export async function sync({ now = new Date(), fetchImpl = fetch, paths = outputPaths } = {}) {
+  const scenes = withinRollingWindow(await fetchAnalVidsScenes({ now, fetchImpl }), now);
+  scenes.sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+  const catalogue = { lastChecked: now.toISOString(), sourceUrl: "https://www.analvids.com/studios/lancelotstylesevolution", scenes };
+  await Promise.all(paths.map((path) => writeStore(path, catalogue)));
   return catalogue;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = await sync();
-  console.log(`Saved ${result.scenes.length} scenes to ${dataPath}`);
+  console.log(`Saved ${result.scenes.length} live scenes to ${outputPaths.join(" and ")}`);
 }
