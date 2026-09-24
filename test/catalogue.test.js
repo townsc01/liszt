@@ -10,7 +10,8 @@ import { studio as lancelotStylesEvolution } from "../src/studios/lancelot-style
 import { studio as mamboPerv } from "../src/studios/mambo-perv.js";
 import { studios } from "../src/studios/index.js";
 import { sync } from "../src/sync.js";
-import { fetchTushyScenes, parseTpdbScene, studio as tushy } from "../src/studios/tushy.js";
+import { createTpdbStudio, fetchTushyScenes, parseTpdbScene } from "../src/studios/tpdb.js";
+import { studio as tushy } from "../src/studios/tushy.js";
 import { fetchBangOriginalsScenes, parseListing as parseBangListing, parseVideoPage as parseBangVideoPage, studio as bangOriginals } from "../src/studios/bang-originals.js";
 
 const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
