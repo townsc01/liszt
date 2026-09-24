@@ -6,7 +6,10 @@
       "date": "2026-09-20",
       "url": "https://www.tushy.com/scenes/example-tushy-scene",
       "image": "https://cdn.example/tushy-scene.jpg",
-      "performers": [{ "name": "Performer One" }, { "name": "Performer Two" }]
+      "performers": [
+        { "name": "Performer One", "extras": { "gender": "Female" } },
+        { "name": "Performer Two", "extras": { "gender": "Male" } }
+      ]
     }
   ]
 }

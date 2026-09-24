@@ -142,7 +142,7 @@ test("maps TPDB scene records and tolerates absent optional metadata", async () 
     sourceSceneId: "tpdb-scene-uuid-001",
     title: "Example Tushy Scene",
     releaseDate: "2026-09-20",
-    performers: ["Performer One", "Performer Two"],
+    performers: ["Performer One"],
     thumbnailUrl: "https://cdn.example/tushy-scene.jpg",
     releaseUrl: "https://www.tushy.com/scenes/example-tushy-scene",
     source: "ThePornDB",
@@ -150,6 +150,11 @@ test("maps TPDB scene records and tolerates absent optional metadata", async () 
   });
   assert.equal(parseTpdbScene({ id: 42, title: "Bare", date: "2026-09-20" }).thumbnailUrl, "");
   assert.deepEqual(parseTpdbScene({ id: 42, title: "Bare", date: "2026-09-20" }).performers, []);
+  assert.deepEqual(parseTpdbScene({ id: 43, title: "Mixed", date: "2026-09-20", performers: [
+    { name: "Jane", extras: { gender: "fEmAlE" } },
+    { name: "John", extras: { gender: "Male" } },
+    { name: "Unknown" },
+  ] }).performers, ["Jane"]);
   assert.throws(() => parseTpdbScene({ title: "Missing ID", date: "2026-09-20" }), /missing its ID/);
 });
 
