@@ -1,5 +1,5 @@
 import { renderSceneLinks } from "./scene-links.js";
-import { topEpornerUrl } from "./scene-video.js";
+import { topSxyprnUrl } from "./scene-video.js";
 
 const list = document.querySelector("#list");
 const empty = document.querySelector("#empty");
@@ -17,6 +17,7 @@ const catalogueUrl = document.body.dataset.catalogueUrl || "./catalogue.json";
 const refreshUrl = document.body.dataset.refreshUrl;
 let scenes = [];
 let sourceStatuses = [];
+let enrichmentTimer = null;
 
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 const parseDate = (value) => new Date(`${value}T12:00:00Z`);
@@ -37,7 +38,7 @@ function render() {
     const date = parseDate(scene.releaseDate);
     const initials = scene.title.split(/\s+/).slice(0, 2).map((word) => word[0]).join("");
     const image = scene.thumbnailUrl ? `<img src="${escapeHtml(scene.thumbnailUrl)}" alt="">` : escapeHtml(initials);
-    const thumbnail = topEpornerUrl(scene)
+    const thumbnail = topSxyprnUrl(scene)
       ? `<a class="thumb thumb--playable" href="/watch.html?scene=${encodeURIComponent(scene.id)}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${escapeHtml(scene.title)} in a new tab">${image}<span class="thumb-play" aria-hidden="true">▶</span></a>`
       : `<div class="thumb">${image}</div>`;
     return `<article class="row" style="animation-delay:${index * 45}ms"><time class="date" datetime="${scene.releaseDate}"><strong>${date.getUTCDate().toString().padStart(2, "0")}</strong><span>${date.toLocaleDateString("en", { weekday: "short", timeZone: "UTC" })}</span></time>${thumbnail}<div class="details"><h3>${escapeHtml(scene.title)}</h3><p>${escapeHtml(scene.studio)}</p></div><div class="performers">${scene.performers.map(escapeHtml).join(" · ") || "Performers unlisted"}</div>${renderSceneLinks(scene)}</article>`;
@@ -83,6 +84,14 @@ studio.addEventListener("change", () => {
   render();
 });
 
+async function pollEnrichment() {
+  try {
+    await loadCatalogue();
+  } catch {
+    enrichmentTimer = setTimeout(pollEnrichment, 10_000);
+  }
+}
+
 function applyCatalogue(data) {
   scenes = data.scenes;
   const statuses = data.studios || [];
@@ -93,10 +102,13 @@ function applyCatalogue(data) {
   const requestedStudio = new URL(location.href).searchParams.get("studio");
   const desiredStudio = selectedStudio !== "all" ? selectedStudio : requestedStudio;
   if ([...studio.options].some((option) => option.value === desiredStudio)) studio.value = desiredStudio;
-  notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("");
+  notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("") +
+    (data.enrichmentPending ? '<div class="notice">Checking Sxyprn for matching videos. New links will appear here as they are verified.</div>' : "");
   lastChecked.textContent = data.lastChecked ? new Date(data.lastChecked).toLocaleString("en", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Not yet checked";
   renderSources();
   render();
+  clearTimeout(enrichmentTimer);
+  if (data.enrichmentPending) enrichmentTimer = setTimeout(pollEnrichment, 10_000);
 }
 
 async function loadCatalogue({ refreshSources = false } = {}) {

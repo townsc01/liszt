@@ -27,11 +27,10 @@ To add another studio, implement and register an adapter for its chosen source, 
 
 ## Run and deploy
 
-Use Node.js 20 or newer. Initialise the pinned Lustpress submodule before installing dependencies:
+Use Node.js 20.18.1 or newer:
 
 ```sh
-git submodule update --init --recursive
-npm install
+npm ci
 npm test
 npm run sync
 npm start
@@ -41,15 +40,13 @@ Open <http://localhost:10000>. `npm run sync` writes `data/catalogue.json`; `LIS
 
 Fetching is server-side. The [watchlist mockups](docs/mockups/watchlist.html) are illustrative and contain no live scene data.
 
-## Eporner links with Lustpress
+## Sxyprn links
 
-Lustpress is pinned as a Git submodule at `vendor/lustpress`. Run `git submodule update --init --recursive` after cloning Liszt. To update it deliberately, run `git -C vendor/lustpress fetch origin`, check the upstream changes, check out the chosen commit inside the submodule, then commit Liszt's changed submodule pointer. Lustpress requires Bun 1.4.2 or newer.
+Liszt uses the `sxyprn` Node library directly; Lustpress, Bun, and Eporner are no longer required. The server searches Sxyprn by performer and title, verifies promising post pages, and stores stable `sxyprnUrls` in the catalogue. An unchanged scene is checked at most once per day. Automatic checks cover releases from the past 14 days; older verified links remain visible. `npm run backfill:sxyprn` performs a one-time check across the full 90-day catalogue. Sxyprn requests are spaced at least 10 seconds apart, so a full backfill can take many minutes. User-confirmed matches with opaque titles can be placed in `src/sxyprn-overrides.js`; the Naty Heat debut keeps two verified uploads there.
 
-`npm start` runs Liszt and the bundled Lustpress together, setting `LUSTPRESS_URL` to `http://127.0.0.1:3001` for Liszt. Set `LUSTPRESS_URL` yourself before standalone `npm run sync`; without it, automatic Eporner enrichment is disabled. The public Lustpress API was discontinued, so a self-hosted instance is required. `npm run sync` searches Eporner's official video API by performer name and distinctive title words, then asks Lustpress to verify promising video pages. Lustpress's own Eporner search endpoint reads tag pages, so it is not used for scene discovery. Browser clients never call either API. A scene gets an `epornerUrls` array only when the Eporner title closely matches the release title, a named performer appears in Eporner's title or keywords, and the result is unambiguous. For this prototype, Eporner matching runs only for releases from the past 14 days, and results are checked at most once per day for unchanged scenes. Older catalogue rows retain their source links without Eporner links. The final product is intended to link the full catalogue; that will require persistent enrichment state and a separate bounded processing strategy. Unverified scenes keep their source link without an Eporner link. Search or Lustpress outages cannot discard a studio's catalogue.
+The dashboard's **Refresh data** action updates studio records first, then starts Sxyprn matching in the server process. Matching saves each result to the catalogue as it finishes and never removes a studio record when Sxyprn is unavailable. A linked thumbnail opens Liszt's watch page, which requests a fresh media URL from the server. Sxyprn prevents third-party framing, so the watch page uses an HTML video element and retains a direct Sxyprn post link if playback fails.
 
-For user-confirmed matches with translated or opaque Eporner titles, add the scene ID and direct URLs to `src/eporner-overrides.js`. The Naty Heat debut has two such uploads, identified by ThePornDB scene 11569889 and the current AnalVids scene 4683299; both links are shown. Do not infer these associations from a performer name or matching duration alone.
-
-The existing `liszt` Render service remains a single Node web service. Its `yarn` build installs pinned Bun and builds Lustpress from the pinned Git submodule; `yarn start` runs both processes, with only Liszt on Render's public port. The optional `Dockerfile` packages the same two apps if a container runtime is preferred later. Render clones public Git submodules during builds. The local catalogue is bundled with the deployment; updates written by Refresh data are lost on a fresh deploy or instance restart unless `LISZT_DATA_PATH` points to persistent storage.
+The existing `liszt` Render service remains a single Node web service. Its build runs `npm ci`; `npm start` runs only Liszt. The optional `Dockerfile` packages the same app. The local catalogue is bundled with the deployment. Updates written by Refresh data are lost on a fresh deploy or instance restart unless `LISZT_DATA_PATH` points to persistent storage.
 
 ## Possible next steps
 

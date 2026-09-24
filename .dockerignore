@@ -3,9 +3,6 @@
 docs
 fixtures
 test
-vendor/lustpress/.git
-vendor/lustpress/node_modules
-vendor/lustpress/resources
-vendor/lustpress/test
-vendor/lustpress/build
+node_modules
+vendor
 *.tmp

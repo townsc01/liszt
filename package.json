@@ -5,16 +5,15 @@
   "description": "A small, dependable release watchlist prototype",
   "type": "module",
   "scripts": {
-    "start": "node scripts/start-native.mjs",
-    "postinstall": "npm run build:lustpress",
-    "build:lustpress": "cd vendor/lustpress && ../../node_modules/.bin/bun install --frozen-lockfile && ../../node_modules/.bin/bun run build",
+    "start": "node src/server.js",
     "test": "node --test test/*.test.js",
-    "sync": "node src/sync.js"
+    "sync": "node src/sync.js",
+    "backfill:sxyprn": "node scripts/backfill-sxyprn.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.18.1"
   },
   "dependencies": {
-    "bun": "1.4.2"
+    "sxyprn": "0.1.0"
   }
 }
