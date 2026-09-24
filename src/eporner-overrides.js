@@ -8,4 +8,5 @@ const natyHeatDebut = [
 export const epornerOverrides = new Map([
   ["lancelot-styles-evolution:4683299", natyHeatDebut], // Current AnalVids ID.
   ["lancelot-styles-evolution:11569889", natyHeatDebut], // ThePornDB ID.
+  ["lancelot-styles-evolution:1185420a-ea40-4386-8cd6-335e8c0942d1", natyHeatDebut], // Current ThePornDB API UUID.
 ]);

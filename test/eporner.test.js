@@ -96,6 +96,22 @@ test("refresh without a Lustpress URL retains existing verified links", async ()
   assert.equal(changed.epornerUrls, undefined);
 });
 
+test("only releases from the past two weeks are considered for Eporner linking", async () => {
+  const older = { ...scene, id: "studio:old", releaseDate: "2026-09-01", epornerUrls: [url] };
+  let calls = 0;
+  const [linked, unlinked] = await enrichEpornerLinks([scene, older], [{ ...older, epornerUrls: [url] }], async () => { calls++; return url; }, { now: new Date("2026-09-24T12:00:00Z") });
+  assert.equal(calls, 1);
+  assert.deepEqual(linked.epornerUrls, [url]);
+  assert.equal(unlinked.epornerUrls, undefined);
+});
+
+test("verified links follow a source URL when the source changes its scene ID", async () => {
+  const prior = { ...scene, id: "studio:old", epornerUrls: [url] };
+  const current = { ...scene, id: "studio:new", title: scene.title.toUpperCase() };
+  const [linked] = await enrichEpornerLinks([current], [prior], async () => null, { now: new Date("2026-09-24T12:00:00Z") });
+  assert.deepEqual(linked.epornerUrls, [url]);
+});
+
 test("a successful catalogue refresh retains verified links without Lustpress", async () => {
   const path = join(tmpdir(), `liszt-eporner-retain-${process.pid}.json`);
   const prior = { ...scene, epornerUrls: [url], epornerCheckedAt: "2026-09-23T00:00:00.000Z" };
@@ -116,4 +132,6 @@ test("the user-confirmed Naty Heat scene has both Eporner uploads", async () => 
   ]);
   assert.match(renderSceneLinks(linked), /Eporner 1 ↗/);
   assert.match(renderSceneLinks(linked), /Eporner 2 ↗/);
+  const [current] = await enrichEpornerLinks([{ ...naty, id: "lancelot-styles-evolution:1185420a-ea40-4386-8cd6-335e8c0942d1" }], [], async () => null, { now: new Date("2026-09-24T12:00:00Z") });
+  assert.deepEqual(current.epornerUrls, linked.epornerUrls);
 });

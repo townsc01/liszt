@@ -123,20 +123,30 @@ export function createEpornerLookup({ baseUrl, fetchImpl = fetch } = {}) {
 
 export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concurrency = 4, now = new Date() } = {}) {
   const previous = new Map(previousScenes.map((scene) => [scene.id, scene]));
+  const previousByReleaseUrl = new Map(previousScenes.filter((scene) => scene.releaseUrl).map((scene) => [scene.releaseUrl, scene]));
   const output = [...scenes];
+  const cutoff = new Date(now.getTime() - 14 * 86_400_000).toISOString().slice(0, 10);
   let next = 0;
   await Promise.all(Array.from({ length: Math.min(concurrency, scenes.length) }, async () => {
     while (next < scenes.length) {
       const index = next++;
       const scene = scenes[index];
+      if (scene.releaseDate < cutoff) {
+        const { epornerUrls, epornerUrl, epornerCheckedAt, ...sourceScene } = scene;
+        output[index] = sourceScene;
+        continue;
+      }
       const override = epornerOverrides.get(scene.id);
       if (override) {
         output[index] = { ...scene, epornerUrls: override.filter(validEpornerUrl) };
         continue;
       }
-      const prior = previous.get(scene.id);
-      const unchanged = prior && prior.title === scene.title && prior.releaseDate === scene.releaseDate &&
-        JSON.stringify(prior.performers) === JSON.stringify(scene.performers);
+      const prior = previous.get(scene.id) || previousByReleaseUrl.get(scene.releaseUrl);
+      const unchanged = prior && (prior.id === scene.id
+        ? prior.title === scene.title && prior.releaseDate === scene.releaseDate &&
+          JSON.stringify(prior.performers) === JSON.stringify(scene.performers)
+        : prior.releaseUrl === scene.releaseUrl && prior.studioId === scene.studioId &&
+          prior.releaseDate === scene.releaseDate && titleScore(prior.title, scene.title) >= 0.8);
       const priorUrls = unchanged ? (prior.epornerUrls || (prior.epornerUrl ? [prior.epornerUrl] : [])).filter(validEpornerUrl) : [];
       const checkedAt = unchanged ? Date.parse(prior.epornerCheckedAt) : NaN;
       if (!lookup) {
@@ -150,7 +160,7 @@ export async function enrichEpornerLinks(scenes, previousScenes, lookup, { concu
       }
       try {
         const url = await lookup(scene);
-        output[index] = { ...scene, ...(url && validEpornerUrl(url) ? { epornerUrls: [url] } : {}), epornerCheckedAt: now.toISOString() };
+        output[index] = { ...scene, ...(url && validEpornerUrl(url) ? { epornerUrls: [url] } : priorUrls.length ? { epornerUrls: priorUrls } : {}), epornerCheckedAt: now.toISOString() };
       } catch {
         // Eporner is optional enrichment; studio records remain available.
         if (priorUrls.length) output[index] = { ...scene, epornerUrls: priorUrls, epornerCheckedAt: prior.epornerCheckedAt };
