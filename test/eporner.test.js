@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createEpornerLookup, enrichEpornerLinks, validEpornerUrl } from "../src/eporner.js";
 import { renderSceneLinks } from "../public/scene-links.js";
+import { epornerEmbedUrl, topEpornerUrl } from "../public/scene-video.js";
 import { sync } from "../src/sync.js";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -11,6 +12,20 @@ const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: 
 const url = "https://www.eporner.com/video-AbC123xyZ90/lana-wills-double-anal-debut/";
 const candidate = (id = "AbC123xyZ90", title = scene.title, link = url) => ({ id, title, url: link, keywords: "Lana Wills, anal" });
 const response = (data, source) => ({ ok: true, json: async () => ({ success: true, data, source }) });
+
+test("player uses the first verified URL and converts it to an embed", () => {
+  const second = "https://www.eporner.com/video-XyZ999abC12/duplicate/";
+  assert.equal(topEpornerUrl({ epornerUrls: [url, second] }), url);
+  assert.equal(epornerEmbedUrl(topEpornerUrl({ epornerUrls: [url, second] })), "https://www.eporner.com/embed/AbC123xyZ90/");
+  assert.equal(epornerEmbedUrl("https://www.eporner.com/hd-porn/AbC123xyZ90/example/"), "https://www.eporner.com/embed/AbC123xyZ90/");
+});
+
+test("player rejects missing and unsafe video URLs", () => {
+  assert.equal(topEpornerUrl(scene), null);
+  assert.equal(topEpornerUrl({ epornerUrls: ["https://evil.example/video-AbC123xyZ90/"] }), null);
+  assert.equal(epornerEmbedUrl("javascript:alert(1)"), null);
+  assert.equal(epornerEmbedUrl("https://www.eporner.com/search/?q=example"), null);
+});
 
 function api({ candidates = [candidate()], details = { title: scene.title, models: [] }, source, searchError = false, titleOnly = false } = {}) {
   const calls = [];
