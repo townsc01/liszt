@@ -4,7 +4,7 @@ Liszt is a personal hobby project for keeping a rolling 90-day watchlist of scen
 
 ## Sources and adapters
 
-Each studio has one configured source of release information. The source and extraction method can differ by studio: a studio website, primary storefront, third-party API such as TPDB, or another suitable source. Source URLs and record details are kept for debugging and traceability. The current code uses AnalVids listings and linked scene pages for **Lancelot Styles Evolution** and **Mambo Perv**, the TPDB API for **Tushy**, and Bang! Originals' anal-filtered listing with linked video metadata for **Bang! Originals**. These adapters are registered in `src/studios/index.js`.
+Each studio has one configured source of release information. The source and extraction method can differ by studio: a studio website, primary storefront, third-party API such as TPDB, or another suitable source. Source URLs and record details are kept for debugging and traceability. The current code uses TPDB for **Lancelot Styles Evolution**, **Mambo Perv**, and **Tushy**, and Bang! Originals' anal-filtered listing with linked video metadata for **Bang! Originals**. These adapters are registered in `src/studios/index.js`.
 
 The current adapter contract is a module in `src/studios/` registered in `src/studios/index.js`:
 
@@ -21,7 +21,7 @@ The field is currently named `authority` in code; it identifies the configured s
 
 An adapter returning no scenes must set `verifiedEmpty: true` after checking that the source really has no matching records. An unexpected empty extraction is treated as a failure. Each studio refresh runs independently: if one fails, its last-good records within the 90-day window remain available, with an error and the last successful refresh time, while other studios can update.
 
-The Tushy adapter resolves the matching TPDB site record, then calls `/scenes` with its site ID and the 90-day cutoff. It sends `TPDB_API_KEY` as a Bearer token and follows paginated results. Keep this key in the server environment; it is never sent to the browser or written into catalogue data. As with the other adapters, the shared sync retains only the rolling 90-day window and preserves last-good records on a failed refresh.
+The TPDB adapters resolve each matching site record, then call `/scenes` with its site ID and the 90-day cutoff. They send `TPDB_API_KEY` as a Bearer token and follow paginated results. Keep this key in the server environment; it is never sent to the browser or written into catalogue data. As with the other adapters, the shared sync retains only the rolling 90-day window and preserves last-good records on a failed refresh.
 
 To add another studio, implement and register an adapter for its chosen source, add representative fixtures and parsing tests, then run `npm test` and `npm run sync`. Inspect `data/catalogue.json` and the studio's refresh status. A source shared by several studios could instead be implemented as a reusable adapter.
 

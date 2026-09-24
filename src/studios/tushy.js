@@ -3,16 +3,21 @@ const SITES_URL = `${API_BASE_URL}/sites`;
 const PER_PAGE = 100;
 const MAX_PAGES = 1000;
 
-export const studio = {
-  id: "tushy",
-  name: "Tushy",
+export function createTpdbStudio({ id, name, siteName = name }) {
+  const adapter = {
+  id,
+  name,
   authority: {
     name: "ThePornDB",
     url: `${API_BASE_URL}/scenes`,
     role: "authoritative catalogue",
   },
-  fetchScenes: fetchTushyScenes,
-};
+  fetchScenes: (options) => fetchTpdbScenes({ ...options, siteName, sourceUrl: adapter.authority.url }),
+  };
+  return adapter;
+}
+
+export const studio = createTpdbStudio({ id: "tushy", name: "Tushy" });
 
 function getSceneId(record) {
   return record.id ?? record.uuid ?? record._id ?? record.external_id;
@@ -23,7 +28,7 @@ function isMaleGender(gender) {
     .trim().toLowerCase().replace(/-/g, " "));
 }
 
-export function parseTpdbScene(record, performerGenders = new Map()) {
+export function parseTpdbScene(record, performerGenders = new Map(), sourceUrl = studio.authority.url) {
   const sourceSceneId = getSceneId(record);
   if (!sourceSceneId || !record.date || !record.title) {
     throw new Error("TPDB scene is missing its ID, date, or title");
@@ -50,7 +55,7 @@ export function parseTpdbScene(record, performerGenders = new Map()) {
     source: "ThePornDB",
     provenance: {
       source: "ThePornDB",
-      sourceUrl: studio.authority.url,
+      sourceUrl,
       recordUrl: releaseUrl,
       sourceSceneId: String(sourceSceneId),
     },
@@ -144,14 +149,15 @@ async function resolvePerformerGenders(records, fetchImpl, apiKey) {
   return performers;
 }
 
-async function findTushySite(fetchImpl, apiKey) {
+async function findTpdbSite(siteName, fetchImpl, apiKey) {
   const url = new URL(SITES_URL);
-  url.searchParams.set("q", "Tushy");
+  url.searchParams.set("q", siteName);
   url.searchParams.set("per_page", String(PER_PAGE));
   const sites = await requestJson(url, fetchImpl, apiKey);
-  const site = sites.find((candidate) => candidate.name?.trim().toLowerCase() === "tushy"
-    || candidate.short_name?.trim().toLowerCase() === "tushy");
-  if (!site?.id) throw new Error("TPDB did not return a matching Tushy site");
+  const target = siteName.trim().toLowerCase();
+  const site = sites.find((candidate) => candidate.name?.trim().toLowerCase() === target
+    || candidate.short_name?.trim().toLowerCase() === target);
+  if (!site?.id) throw new Error(`TPDB did not return a matching ${siteName} site`);
   return site;
 }
 
@@ -165,9 +171,9 @@ async function fetchPage(page, fetchImpl, apiKey, siteId, cutoff) {
   return requestJson(url, fetchImpl, apiKey);
 }
 
-export async function fetchTushyScenes({ now = new Date(), days = 90, fetchImpl = fetch, apiKey = process.env.TPDB_API_KEY } = {}) {
+export async function fetchTpdbScenes({ now = new Date(), days = 90, fetchImpl = fetch, apiKey = process.env.TPDB_API_KEY, siteName = "Tushy", sourceUrl = `${API_BASE_URL}/scenes` } = {}) {
   if (!apiKey) throw new Error("TPDB_API_KEY is not configured");
-  const site = await findTushySite(fetchImpl, apiKey);
+  const site = await findTpdbSite(siteName, fetchImpl, apiKey);
   const cutoff = new Date(now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
   const records = [];
   for (let page = 1; page <= MAX_PAGES; page += 1) {
@@ -175,9 +181,11 @@ export async function fetchTushyScenes({ now = new Date(), days = 90, fetchImpl 
     records.push(...batch);
     if (batch.length < PER_PAGE) {
       const performerGenders = await resolvePerformerGenders(records, fetchImpl, apiKey);
-      const scenes = records.map((record) => parseTpdbScene(record, performerGenders));
+      const scenes = records.map((record) => parseTpdbScene(record, performerGenders, sourceUrl));
       return { scenes, verifiedEmpty: scenes.length === 0 };
     }
   }
   throw new Error(`TPDB pagination exceeded ${MAX_PAGES} pages`);
 }
+
+export const fetchTushyScenes = fetchTpdbScenes;

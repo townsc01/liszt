@@ -6,8 +6,8 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { validateResult, withinRollingWindow } from "../src/catalogue.js";
-import { parseListing, parseScenePage, studio } from "../src/studios/lancelot-styles-evolution.js";
-import { fetchAnalVidsScenes as fetchMamboPervScenes, parseListing as parseMamboPervListing, parseScenePage as parseMamboPervScenePage, studio as mamboPerv } from "../src/studios/mambo-perv.js";
+import { studio as lancelotStylesEvolution } from "../src/studios/lancelot-styles-evolution.js";
+import { studio as mamboPerv } from "../src/studios/mambo-perv.js";
 import { studios } from "../src/studios/index.js";
 import { sync } from "../src/sync.js";
 import { fetchTushyScenes, parseTpdbScene, studio as tushy } from "../src/studios/tushy.js";
@@ -16,16 +16,6 @@ import { fetchBangOriginalsScenes, parseListing as parseBangListing, parseVideoP
 const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
 const scene = (id, releaseDate = "2026-09-20") => ({ sourceSceneId: id, title: `Scene ${id}`, releaseDate, performers: [], thumbnailUrl: "", releaseUrl: `https://source/${id}`, source: "Test", provenance: { source: "Test", sourceUrl: "https://source", recordUrl: `https://source/${id}`, sourceSceneId: id } });
 const adapter = (id, fetchScenes) => ({ id, name: `Studio ${id}`, authority: { name: "Test", url: `https://source/${id}`, role: "authoritative catalogue" }, fetchScenes });
-
-test("parses representative saved AnalVids listing and scene pages", async () => {
-  const [listing] = parseListing(await fixture("listing.html"));
-  assert.deepEqual(listing, { title: "Ada & Bea", releaseUrl: "https://www.analvids.com/watch/42/a_scene", thumbnailUrl: "https://cdn.example/thumb.jpg?x=1&y=2" });
-  const parsed = parseScenePage(await fixture("scene.html"), listing);
-  assert.equal(parsed.id, "lancelot-styles-evolution:42");
-  assert.equal(parsed.sourceSceneId, "42");
-  assert.equal(parsed.provenance.source, "AnalVids");
-  assert.deepEqual(parsed.performers, ["Ada"]);
-});
 
 test("IDs are stable and scoped to a studio rather than title or date", () => {
   const first = validateResult(adapter("one", null), { scenes: [scene("42")], verifiedEmpty: false })[0];
@@ -80,29 +70,11 @@ test("failed studios retain only last-good records still inside the rolling wind
   assert.deepEqual(result.scenes.map(({ id }) => id), ["bad:recent"]);
 });
 
-test("Lancelot declares AnalVids as its authority", () => {
-  assert.equal(studio.authority.role, "authoritative catalogue");
-  assert.match(studio.authority.url, /analvids\.com/);
-});
-
-test("parses representative saved Mambo Perv listing and scene pages", async () => {
-  const mamboFixture = (name) => readFile(new URL(`../fixtures/mambo-perv/${name}`, import.meta.url), "utf8");
-  const [listing] = parseMamboPervListing(await mamboFixture("listing.html"));
-  assert.deepEqual(listing, {
-    title: "Lika Sanches & scene OB668",
-    releaseUrl: "https://www.analvids.com/watch/5281264/19y_very_beautiful_brazilian_lika_sanches_first_double_anal_penetration_dapbreakin_dap_anal_2on1_bbc_dirty_talk_ob668",
-    thumbnailUrl: "https://cdn.example/mambo-thumb.jpg?x=1&y=2",
-  });
-  const parsed = parseMamboPervScenePage(await mamboFixture("scene.html"), listing, new Set(["308317/lika_sanches"]));
-  assert.equal(parsed.sourceSceneId, "5281264");
-  assert.equal(parsed.releaseDate, "2026-09-20");
-  assert.deepEqual(parsed.performers, ["Lika Sanches"]);
-  assert.deepEqual(parsed.provenance, { source: "AnalVids", sourceUrl: mamboPerv.authority.url, recordUrl: listing.releaseUrl, sourceSceneId: "5281264" });
-});
-
-test("Mambo Perv treats a zero-card parse as a failed fetch", async () => {
-  const response = { ok: true, text: async () => "<html><body>No scene cards</body></html>" };
-  await assert.rejects(fetchMamboPervScenes({ now: new Date("2026-09-24T12:00:00Z"), fetchImpl: async () => response }), /no Mambo Perv scene cards/);
+test("Lancelot and Mambo Perv use TPDB with matching site filters", () => {
+  assert.equal(lancelotStylesEvolution.authority.name, "ThePornDB");
+  assert.equal(mamboPerv.authority.name, "ThePornDB");
+  assert.equal(lancelotStylesEvolution.id, "lancelot-styles-evolution");
+  assert.equal(mamboPerv.id, "mambo-perv");
 });
 
 test("Mambo Perv is registered for the dashboard filter with its documented authority", async () => {
@@ -138,7 +110,7 @@ test("AnalVids retries transient network failures and identifies exhausted URL",
 
 test("maps TPDB scene records and tolerates absent optional metadata", async () => {
   const fixtureData = JSON.parse(await readFile(new URL("../fixtures/tpdb-tushy.json", import.meta.url), "utf8"));
-  const [parsed] = fixtureData.data.map(parseTpdbScene);
+  const [parsed] = fixtureData.data.map((record) => parseTpdbScene(record));
   assert.deepEqual(parsed, {
     sourceSceneId: "tpdb-scene-uuid-001",
     title: "Example Tushy Scene",
@@ -158,6 +130,18 @@ test("maps TPDB scene records and tolerates absent optional metadata", async () 
     { name: "Trans man", extras: { gender: "TRANSGENDER_MALE" } },
   ] }).performers, ["Jane", "Unknown"]);
   assert.throws(() => parseTpdbScene({ title: "Missing ID", date: "2026-09-20" }), /missing its ID/);
+});
+
+test("TPDB scene parser records the correct shared API provenance for each studio", async () => {
+  for (const adapter of [lancelotStylesEvolution, mamboPerv]) {
+    const result = await adapter.fetchScenes({ apiKey: "test-secret", fetchImpl: async (url) => {
+      const requestUrl = new URL(url);
+      const data = requestUrl.pathname === "/sites" ? [{ id: adapter.id, name: adapter.name }] : [{ id: "scene-1", title: "Scene", date: "2026-09-20" }];
+      return { ok: true, json: async () => ({ data }) };
+    } });
+    assert.equal(result.scenes[0].provenance.source, "ThePornDB");
+    assert.equal(result.scenes[0].provenance.sourceUrl, adapter.authority.url);
+  }
 });
 
 test("Tushy polls all TPDB pages with bearer auth and confirms empty results", async () => {
