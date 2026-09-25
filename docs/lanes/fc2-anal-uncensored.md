@@ -75,12 +75,13 @@ Apply in this order. Every excluded item is logged with the reason; nothing is s
    - null badge -> **pending**, not rejected: hold the item and re-check on later runs (see sync design).
      7,583 items were unbadged in the full-history crawl; most old items are never marked. For the
      ongoing lane, re-check pending items for up to 7 days, then drop them.
-4. **Trans / crossdress exclusion.** Exclude when title or tags contain:
-   ニューハーフ, 女装子, 女装, 男の娘, シーメール, or English shemale/trans.
+4. **Trans / crossdress exclusion (hard rule, confirmed by Chris 2026-09-25: no crossdressing
+   or trans content at all).** Exclude when title or tags contain:
+   ニューハーフ, 女装子, 女装, 男の娘, シーメール, ペニ子, ペニクリ, or English shemale/trans.
    The 2026-09-24 run excluded 2 items: 4362199 (title says ニューハーフ) and 2229202
    (no trans wording in the title, but tagged 女装子 - excluded on the tag).
-   *Open question for Chris (section 10): the second one is a male-crossdresser tag, not a
-   trans woman - reinstate it if his "no trans" meant trans performers only.*
+   Chris ruled on 2026-09-25: no crossdressing or trans content at all - both stay excluded,
+   this is a hard block with no reinstatement path.
 
 ### 2026-09-24 crawl ledger (the acceptance baseline)
 
@@ -240,8 +241,8 @@ Tests to write:
 
 1. **Window:** whole-history FC2 lane (proposal: `windowDays: null`) or the standard rolling
    90 days? The rules say "all anal scenes" for Asian lanes; Liszt today enforces 90 days.
-2. **Crossdresser tags:** reinstate items like 2229202 (tagged 女装子, no trans wording) or keep
-   the broader exclusion?
+2. **Crossdresser tags:** RESOLVED 2026-09-25 - Chris: no crossdressing or trans content at
+   all. 女装子 and related terms are hard exclusions (section 3, rule 4).
 3. **Sellers as studios:** RESOLVED 2026-09-25 - each whitelisted seller is its own studio
    (section 11.3).
 4. **Translation provider:** RESOLVED 2026-09-25 - glossary + LLM from day one (section 11.4).
@@ -331,5 +332,5 @@ at the listing tier and counted in the sync ledger.
 
 - **#1 windowDays** (whole history vs rolling 90 days) - with seller whitelisting the
   practical volume is small either way; implement the `windowDays` hook and let Chris flip it.
-- **#2 the 女装子 tag** (male crossdresser, not trans woman) - keep excluded unless Chris says
-  otherwise.
+- ~~#2 the 女装子 tag~~ RESOLVED 2026-09-25: Chris ruled no crossdressing or trans content at
+  all - hard exclusion, lexicon extended with ペニ子/ペニクリ.
