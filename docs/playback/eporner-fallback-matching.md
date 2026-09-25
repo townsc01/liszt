@@ -41,6 +41,8 @@ The matcher removed in PR #25 scored 8/102. Reproduced: strict title overlap + p
 
 For a confirmed exact match (Tushy "Perfect Hottie Wants Anal"), dHash (16x16, 256-bit) distances between our TPDB `thumbnailUrl` and each of the eporner video's 10 preview frames: 95-145 bits - indistinguishable from random (~128). **TPDB thumbnails are studio promo stills, not video frames.** Do not build thumbnail matching on TPDB images. (Eporner thumbs ARE frames; frame-to-frame hashing against another frame source - e.g. sxyprn post thumbnails - would work if ever needed. Note and shelve.)
 
+Follow-up (same day, Chris's stage-3 idea): color similarity within a duration-narrowed set is ALSO falsified. On the 7 verified true pairs (TPDB still vs the matched video's 12 preview frames, best-frame-wins) against 60 random control thumbs: Bhattacharyya histogram distance (8x8x8 RGB) true-mean 0.459 vs control-min-mean 0.473 - no separation (only 3/7 true pairs beat the control minimum); average-colour distance true-mean 23.8 vs control-min-mean 9.3 - the control is CLOSER than the true frames. Porn thumbnails are palette-homogeneous (skin tones dominate), so colour cannot disambiguate promo-still vs frame either. Duration + performer remains the whole matcher.
+
 ### 2d. Date-stamped titles - 2%
 
 16/946 pooled eporner titles embed an upload date (`26 09 06` style). A free corroborator when present, never a pillar.
