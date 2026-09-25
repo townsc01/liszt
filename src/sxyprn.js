@@ -4,7 +4,6 @@ import { sxyprnOverrides } from "./sxyprn-overrides.js";
 import { enrichFromStudioSite } from "./studio-site.js";
 import { matchTokens, pickMatch, titleStem } from "./matching.js";
 import { configuredSceneCode } from "./matching-config.js";
-import { concurrencyLimit, mapWithConcurrency } from "./concurrency.js";
 
 const DAY_MS = 86_400_000;
 const COMMON = new Set(["a", "an", "and", "at", "by", "for", "in", "into", "of", "on", "the", "to", "with"]);
@@ -192,12 +191,12 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
   return output;
 }
 
-export async function enrichStoredCatalogue(path, { lookup = createSxyprnLookup(), fallbackLookup, days = 14, shouldContinue = () => true, onProgress = () => {}, concurrency = concurrencyLimit(process.env.LISZT_PLAYBACK_CONCURRENCY, 4) } = {}) {
+export async function enrichStoredCatalogue(path, { lookup = createSxyprnLookup(), fallbackLookup, days = 14, shouldContinue = () => true, onProgress = () => {} } = {}) {
   const catalogue = await readStore(path);
   let changed = false;
-  const scenes = catalogue.scenes || [];
-  await mapWithConcurrency(scenes, concurrency, async (scene, index) => {
-    if (!shouldContinue()) return;
+  for (let index = 0; index < (catalogue.scenes || []).length; index++) {
+    if (!shouldContinue()) break;
+    const scene = catalogue.scenes[index];
     let [updated] = await enrichSxyprnLinks([scene], [scene], lookup, { days });
     if (fallbackLookup && !updated.videoUrls?.some((link) => link.source === "sxyprn") && Number.isFinite(updated.durationSec)) {
       try {
@@ -211,10 +210,10 @@ export async function enrichStoredCatalogue(path, { lookup = createSxyprnLookup(
         // Keep the last-good links when the fallback source is unavailable.
       }
     }
-    if (JSON.stringify(updated) === JSON.stringify(scene) || !shouldContinue()) return;
+    if (JSON.stringify(updated) === JSON.stringify(scene) || !shouldContinue()) continue;
     catalogue.scenes[index] = updated;
     changed = true;
     onProgress(updated);
-  });
+  }
   if (changed && shouldContinue()) await writeStore(path, catalogue);
 }
