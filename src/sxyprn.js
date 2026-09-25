@@ -2,13 +2,14 @@ import sxyprn from "sxyprn";
 import { readStore, writeStore } from "./store.js";
 import { sxyprnOverrides } from "./sxyprn-overrides.js";
 import { enrichFromStudioSite } from "./studio-site.js";
+import { matchTokens, pickMatch, titleStem } from "./matching.js";
+import { configuredSceneCode } from "./matching-config.js";
 
 const DAY_MS = 86_400_000;
 const COMMON = new Set(["a", "an", "and", "at", "by", "for", "in", "into", "of", "on", "the", "to", "with"]);
 
 function words(value) {
-  return String(value || "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "").match(/[a-z0-9]+/g) || [];
+  return matchTokens(String(value || "").replace(/([a-z])([A-Z])/g, "$1 $2"));
 }
 
 function titleWords(value) {
@@ -41,11 +42,18 @@ function hasPerformer(scene, title) {
 }
 
 function sceneCode(scene) {
-  return scene.studioId === "mambo-perv" ? String(scene.title).match(/\bOB\d{3,}\b/i)?.[0].toLowerCase() : null;
+  return configuredSceneCode(scene);
 }
 
 function hasSceneEvidence(scene, title, code) {
   return hasPerformer(scene, title) || (code && new RegExp(`\\b${code}\\b`, "i").test(title));
+}
+
+export function buildSxyprnQueries(scene) {
+  const names = [...new Set((scene.performers || []).map(performerName).filter(Boolean))].slice(0, 2);
+  const performerWords = new Set(names.flatMap(words));
+  const titleQuery = titleWords(scene.title).filter((word) => !performerWords.has(word)).slice(0, 5).join(" ");
+  return [...new Set([...names, titleQuery, sceneCode(scene), scene.creatorStudio ? null : scene.studio].filter(Boolean))];
 }
 
 export function searchSlug(value) {
@@ -77,14 +85,9 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
   };
 
   return async (scene) => {
-    const names = [...new Set((scene.performers || []).map(performerName).filter(Boolean))].slice(0, 2);
     const code = sceneCode(scene);
-    if (!names.length && !code) return [];
-    const performerWords = new Set(names.flatMap(words));
-    const titleQuery = titleWords(scene.title).filter((word) => !performerWords.has(word)).slice(0, 5).join(" ");
-    const studioQuery = scene.creatorStudio ? null : scene.studio;
-    const queries = [...names, titleQuery, code, studioQuery].filter(Boolean);
-    const candidates = new Map();
+    const queries = buildSxyprnQueries(scene);
+    if (!queries.length || !Number.isFinite(scene.durationSec)) return [];
     const allCandidates = new Map();
     let successfulSearches = 0;
     for (const query of queries) {
@@ -94,35 +97,29 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
         for (const item of page.videos || []) {
           if (!validSxyprnUrl(item.url)) continue;
           allCandidates.set(item.url, item);
-          if (!hasSceneEvidence(scene, item.title, code)) continue;
-          const score = titleScore(scene.title, item.title);
-          if (score >= 0.75) candidates.set(item.url, { item, score });
         }
-        if (candidates.size) break;
       } catch {
         // A second performer or the title may still find the scene.
       }
     }
     if (!successfulSearches) throw new Error("Sxyprn search unavailable");
-    if (!candidates.size && Number.isFinite(scene.durationSec)) {
-      for (const item of allCandidates.values()) {
-        const exactTitle = words(item.title).join(" ").includes(words(scene.title).join(" "));
-        if (Math.abs(Number(item.durationSeconds) - scene.durationSec) <= 2 && (hasPerformer(scene, item.title) || exactTitle)) {
-          candidates.set(item.url, { item, score: exactTitle ? 1 : 0 });
-        }
-      }
-    }
-    const ranked = [...candidates.values()].sort((a, b) => b.score - a.score || Number(a.item.isExternal) - Number(b.item.isExternal) || Number(b.item.views || 0) - Number(a.item.views || 0));
+    const mapped = [...allCandidates.values()].map((item) => ({ ...item, duration: Number(item.durationSeconds) }));
+    const identity = (item) => hasSceneEvidence(scene, item.title, code) ||
+      (words(scene.title).length > 0 && words(item.title).join(" ").includes(words(scene.title).join(" ")));
+    const picked = pickMatch(scene, mapped, { identity });
+    if (!picked) return [];
+    const sameStem = mapped.filter((item) => titleStem(item.title) === titleStem(picked.title));
+    const ranked = [picked, ...sameStem.filter((item) => item.url !== picked.url)]
+      .sort((a, b) => Number(a.isExternal) - Number(b.isExternal));
     const verified = [];
     let successfulDetails = 0;
-    for (const { item } of ranked.slice(0, 3)) {
+    for (const item of ranked.slice(0, Math.max(3, maxMatches))) {
       try {
         const detail = await details(item.url);
         successfulDetails++;
-        const durationMatch = Number.isFinite(scene.durationSec) && Math.abs(Number(item.durationSeconds) - scene.durationSec) <= 2 &&
-          (hasPerformer(scene, detail.title) || words(detail.title).join(" ").includes(words(scene.title).join(" ")));
+        const durationMatch = pickMatch(scene, [{ ...item, title: detail.title, duration: Number(item.durationSeconds) }], { identity });
         if (validSxyprnUrl(detail.url) && detail.url === item.url && detail.streamUrl &&
-            (hasSceneEvidence(scene, detail.title, code) || durationMatch) && (titleScore(scene.title, detail.title) >= 0.75 || durationMatch)) {
+            durationMatch) {
           verified.push({ url: detail.url, score: titleScore(scene.title, detail.title), isExternal: detail.isExternal });
           if (verified.length >= maxMatches) break;
         }
@@ -130,7 +127,7 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
         // Do not expose a search hit whose post could not be verified.
       }
     }
-    if (ranked.length && !successfulDetails) throw new Error("Sxyprn post verification unavailable");
+    if (!successfulDetails) throw new Error("Sxyprn post verification unavailable");
     verified.sort((a, b) => b.score - a.score || Number(a.isExternal) - Number(b.isExternal));
     return verified.slice(0, maxMatches).map(({ url }) => url);
   };

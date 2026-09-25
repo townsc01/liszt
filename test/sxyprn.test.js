@@ -8,10 +8,10 @@ import { renderSceneLinks } from "../public/scene-links.js";
 import { isSxyprnVideo, topSxyprnUrl } from "../public/scene-video.js";
 import { sync } from "../src/sync.js";
 
-const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Double Anal Debut", releaseDate: "2026-09-20", performers: ["Lana Wills"], releaseUrl: "https://source.example/1" };
+const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Double Anal Debut", releaseDate: "2026-09-20", performers: ["Lana Wills"], durationSec: 1800, releaseUrl: "https://source.example/1" };
 const url = "https://sxyprn.com/post/6ab5422fa84b6.html";
 const other = "https://sxyprn.com/post/6aaad4186a540.html";
-const candidate = (videoUrl = url, title = scene.title, isExternal = false) => ({ url: videoUrl, title, isExternal });
+const candidate = (videoUrl = url, title = scene.title, isExternal = false) => ({ url: videoUrl, title, isExternal, durationSeconds: 1800 });
 
 function client({ videos = [candidate()], detailTitle = scene.title, failSearch = false, failDetails = false } = {}) {
   const calls = [];
@@ -47,6 +47,20 @@ test("matching prefers the site's native post when duplicate uploads have equal 
   assert.deepEqual(await createSxyprnLookup({ client: source, maxMatches: 2 })(scene), [url, other]);
 });
 
+test("native duplicate wins with the default single result limit", async () => {
+  const source = client({ videos: [candidate(other, scene.title, true), candidate(url, scene.title, false)] });
+  assert.deepEqual(await createSxyprnLookup({ client: source })(scene), [url]);
+  assert.deepEqual(source.calls.filter(([kind]) => kind === "details"), [["details", url]]);
+});
+
+test("Sxyprn performer normalization admits retitled posts for non-coded scenes", async () => {
+  for (const [name, title] of [["Ashley Vixen ls", "Ashley Vixen alternate scene"],
+    ["ElaYuzuki", "Ela Yuzuki alternate scene"]]) {
+    const source = client({ videos: [candidate(url, title)], detailTitle: title });
+    assert.deepEqual(await createSxyprnLookup({ client: source })({ ...scene, performers: [name] }), [url]);
+  }
+});
+
 test("Mambo scene codes recover posts with an alias or missing performer metadata", async () => {
   const coded = { ...scene, id: "mambo-perv:4846367", studioId: "mambo-perv", title: "Riley Rabbit pale skin white Brazilian goth fucked by a big black cock OB632 featuring Negro Top Oficial", performers: [] };
   const postTitle = "Riley Rabbit pale skin white Brazilian goth fucked by a big black cock OB632";
@@ -58,7 +72,7 @@ test("Mambo scene codes recover posts with an alias or missing performer metadat
 });
 
 test("unrelated, unverified and unsafe hits never become links", async () => {
-  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate(url, "Lana Wills Relaxing Massage Debut")] }) })(scene), []);
+  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate(url, "Someone Else Relaxing Massage Debut")] }) })(scene), []);
   assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate(url, "Double Anal Debut With Another Person")] }) })(scene), []);
   assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate("https://sxyprn.com.evil.example/post/6ab5422fa84b6.html")] }) })(scene), []);
   await assert.rejects(createSxyprnLookup({ client: client({ failSearch: true }) })(scene), /Sxyprn search unavailable/);
