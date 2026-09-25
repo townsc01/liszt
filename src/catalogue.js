@@ -13,6 +13,7 @@ export function validateResult(adapter, result) {
   if (!result.scenes.length && result.verifiedEmpty !== true) throw new Error("Suspicious empty extraction (not explicitly verified)");
   return result.scenes.map((scene) => {
     if (!scene.sourceSceneId || !scene.releaseDate || !scene.title) throw new Error("Scene is missing sourceSceneId, releaseDate, or title");
-    return { ...scene, id: `${adapter.id}:${scene.sourceSceneId}`, studioId: adapter.id, studio: adapter.name };
+    return { ...scene, id: `${adapter.id}:${scene.sourceSceneId}`, studioId: adapter.id, studio: adapter.name,
+      ...(adapter.creatorStudio ? { creatorStudio: true } : {}) };
   });
 }
