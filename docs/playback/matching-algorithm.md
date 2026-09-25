@@ -10,9 +10,11 @@
 
 The candidate pool comes from search queries. Queries are cheap recall; the gate below is the precision mechanism.
 
+The algorithm is **uniform across all studios** - no per-studio branches. Studios differ only in query configuration (which extra queries a studio's watchlist adds) and in source-pool coverage, never in the cascade or the gate.
+
 - Up to 2 normalised performer names. **Single-token performer names MUST generate queries too** - the earlier >=2-token rule produced zero queries for "Beauty Saves Marriage With Anal" (performer "Geishakyd") and silently skipped the scene; it sits on sxyprn at 1s off (two uploads, 2504s vs TPDB 2503s).
 - The studio name as an additional query. Measured rescue: the `tushy` query surfaced the Geishakyd scene above. Studio in the QUERY list is cheap recall. (Studio in the GATE is falsified - see stage 4.)
-- Mambo scene code (existing behaviour).
+- Per-studio query config, e.g. the Mambo scene code (existing behaviour). Config, not an algorithm branch.
 
 ## The cascade
 
