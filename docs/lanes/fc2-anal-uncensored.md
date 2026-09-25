@@ -171,12 +171,17 @@ Direction, in order of preference:
    `fc2-ppv-<video_id>` for fc2 scenes and require an exact code match instead of the 0.75
    title-score threshold. Code matches are effectively unambiguous; keep the verified-details
    step unchanged. This needs no new infrastructure and should be tried first.
-2. **Revive the Lustpress/Eporner combo as the fallback.** It was built in #21 and removed in
-   #25 (commit 7272a85); the code is in git history (`src/eporner.js`,
-   `test/eporner.test.js`, the `vendor/lustpress` submodule). Eporner indexes FC2 uploads and its
-   search tolerates the PPV code as a query. If the Sxyprn code search proves thin, port the
-   Eporner matcher behind the same per-lane interface rather than restoring it globally - the
-   western lanes are happy on Sxyprn.
+2. **Eporner is a standing co-lane for FC2, not a fallback (Chris, 2026-09-25: "keep an eporner
+   pipeline working for the fc2 content").** Measured 2026-09-25: eporner carries 6,356 videos
+   titled verbatim `FC2 PPV <code>` (+ "Fc2 Ppv", ".H265" suffix variants), with fresh uploads
+   daily - the FC2 scene's own code IS the eporner title, so the PPV code is the search string
+   unchanged and admission is exact-code-in-title plus duration proximity when the source
+   record carries a duration. Code identity is the strongest signal we have ever measured
+   (verbatim unique identifier, no name fuzziness at all). Port the Eporner matcher behind the
+   same per-lane interface rather than restoring it globally - the western lanes are happy on
+   Sxyprn. The old Lustpress/Eporner combo was built in #21 and removed in #25 (commit
+   7272a85); the code is in git history (`src/eporner.js`, `test/eporner.test.js`, the
+   `vendor/lustpress` submodule).
 3. **FC2 itself is the canonical store but out of scope** (paid, region- and login-restricted).
 
 Whatever the matcher: server-side only, verified before display, never auto-link below the
