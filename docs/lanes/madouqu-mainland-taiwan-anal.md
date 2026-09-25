@@ -102,19 +102,35 @@ One new **lane adapter**, `src/studios/madouqu.js` - but note the contract gap b
 | `studioCode` *(new optional field)* | post `slug` (e.g. `xb6340`) | The label's own release code - the corpus's most useful join key for future sources. |
 | `tags` *(new optional field)* | English content labels derived from the lexicon match (`anal`) | The site doesn't tag usefully. |
 
-**Contract gap: per-label studios.** Chris's corpus is ~15 labels behind one API. The current
-contract stamps `studioId = adapter.id` on every scene, which would flatten all labels into one
-"madouqu" studio and lose the per-label view Chris explicitly wants ("a list of every scene from
-those Chinese studios, their studio code, the performers, the date, the content performed").
-Proposal: let a scene carry its own `studioId`/`studio`, with `validateResult` defaulting to the
-adapter's identity only when absent. The lane adapter then emits one studio per category
+**Per-label studios: DECIDED (Chris, 2026-09-25).** Chris ratified the per-label design: "tighten
+up the watchlist population and have it name the individual studios instead of generic
+'ModelMedia'." The generic label he cited IS the flattening bug - "ModelMedia" is the
+romanisation of one category (麻豆传媒, slug `modelmedia`, 4,296 posts) being applied across the
+lane. The fix: a scene carries its own `studioId`/`studio`, with `validateResult` defaulting to
+the adapter's identity only when absent. The lane adapter emits one studio per category
 (`studioId: "madouqu-" + category slug`, `studio:` English label name - see the romanisation
-table in section 5). This is a small, backward-compatible change to `src/catalogue.js`; the five
-existing adapters are unaffected.
+table in section 5). The categories endpoint grounds 43 labels with per-label post counts
+(杏吧传媒 6,305; 糖心VLOG 4,425; 麻豆传媒 4,296; 星空无限 1,141; 蜜桃传媒 1,080; ...), so the
+watchlist can group and filter by real label from day one. Small, backward-compatible change to
+`src/catalogue.js`; the five existing adapters are unaffected.
+
+**Same architecture as FC2, same source independence (Chris, 2026-09-25):** like the FC2 lane,
+this lane polls its own database (the madouqu WP REST API), never TPDB. Studio identity,
+release codes, and dates all come from the lane's own source; TPDB enrichment does not apply.
 
 **Window.** Same open question as the FC2 lane: watchlist rules say Asian lanes keep *all* anal
 scenes, Liszt enforces 90 days. The FC2 spec proposes an optional `windowDays` contract field
-(default 90, null = unlimited) - implement it once and use it here too. Open question #1.
+(default 90, null = unlimited) - implement it once and use it here too. Open question #1 -
+STILL OPEN for Chris (raised again 2026-09-25).
+
+Open questions for Chris (2026-09-25):
+1. Window: 90 days or unlimited for the Asian lanes?
+2. Performers: madouqu does not structure performer data (names sometimes appear in the excerpt
+   only). Ship with empty performer lists + optional future excerpt parsing, or is excerpt
+   parsing wanted in v1?
+3. Romanisation coverage: the display table covers the top 13 labels; the categories endpoint
+   has 43. Unmapped labels log and fall back to the Chinese name - acceptable, or should the
+   full 43 be named before shipping?
 
 ## 5. Chinese -> English titles and label names
 
