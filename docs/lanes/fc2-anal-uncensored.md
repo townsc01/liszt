@@ -252,40 +252,85 @@ Tests to write:
 Chris reviewed the seed cut and gave four directions. This section overrides the noted earlier
 text; the mechanics elsewhere (rates, fixtures, contract) are unchanged.
 
-### 11.1 Seller whitelist - the lane watches active sellers, not the whole tag
+### 11.1 Activity-based seller admission (REVISED 2026-09-25 late evening - replaces the fixed whitelist)
 
-Measured seller concentration and activity over the 318-row seed (40 distinct sellers, top 5 = 72%):
+Chris reviewed the whitelist design and rejected the hand-seeded gate: alias-tag items must NOT
+require a whitelisted seller. The lane instead **auto-admits sellers by measured activity across
+the union of the anal tag and its aliases**.
 
-| Seller | Rows | Latest in-tag release | Status |
+Measured basis (2026-09-25): 5-page crawl of each of アナルファック, 尻穴, ケツ穴, 2穴, 二穴,
+肛門 = 728 items, 123 distinct sellers, only 8 overlapping the アナル seed's sellers. The alias
+tags carry whole active studios the tag-47 crawl was blind to (table below).
+
+**Admission rule.** A seller (fc2cmadb `writer`) is admitted as a studio when it has
+**>= 3 releases in the trailing 90 days across the union** of the crawled tags (アナル +
+aliases). It goes dormant after 180 days without an in-union release: existing rows stay,
+polling for that seller stops. A single new release re-activates it. Admission is recomputed
+every sync from the listing tiers - no hand-maintained list.
+
+**Alias listings are polled in the cheap tier for ALL sellers** (supersedes the earlier
+"whitelist-only admission" for alias items). An item enters the pipeline from any in-union
+listing regardless of seller, then passes the orientation filter (11.1a), safety screen,
+censorship gate, and blocklists unchanged.
+
+Active sellers the union admits on day one (in-crawl counts over 5 pages/tag, latest release):
+
+| Seller | Items seen | Latest | Notes |
 | --- | --- | --- | --- |
-| 大人仮面Z (Otona Kamen Z) | 122 (38.4%) | 2026-09-22 | active |
-| エロタウロス (EroTauros) | 58 (18.2%) | 2026-09-18 | active |
-| Kerberos | 26 (8.2%) | 2026-07-13 | quiet ~10 weeks |
-| エロスエ リョーコ。 | 13 (4.1%) | 2026-06-14 | quiet ~3.5 months |
-| ハメ撮りランキング | 9 (2.8%) | 2024-06-18 | inactive ~15 months |
+| 大人仮面Z (Otona Kamen Z) | 122 (seed) | 2026-09-22 | tag-47 heavyweight |
+| 憐憫女々 | 62 | 2026-09-21 | NET-NEW from 二穴/肛門 |
+| 志操堅固。 | 61 | 2026-09-23 | NET-NEW from 肛門 |
+| エロタウロス (EroTauros) | 58 (seed) | 2026-09-18 | tag-47 |
+| 豊満マゾ熟女ハンター | 44 | 2026-09-19 | NET-NEW, spans 5 alias tags; titles verified clean M/F anal |
+| スーパー女神ちゃん | 34 | 2026-09-03 | NET-NEW |
+| ちぃたんは肉便器になりました。 | 32 | 2026-09-02 | NET-NEW |
+| うらあかじょし＠丸の内 | 6 | 2026-09-25 | NET-NEW, released same day as the crawl |
 
-Rules:
+### 11.1a Orientation filter - no pegging, no M/M, no M/T, no solo (Chris's constraint)
 
-- **Seed whitelist: 大人仮面Z and エロタウロス** - the two demonstrably active heavyweights
-  (57% of the cut between them).
-- **Auto-promotion:** a seller with >= 3 in-tag releases in the trailing 90 days joins the
-  whitelist during sync. A whitelisted seller with no in-tag release for 180 days goes dormant:
-  its existing rows stay in the catalogue but it is no longer polled for new items.
-- Kerberos and エロスエ リョーコ。 start **dormant-watch**: existing rows kept, a single new
-  release promotes them back. ハメ撮りランキング starts **excluded** (inactive, and a mistag
-  source - see 11.2).
-- Non-whitelisted sellers never enter the watchlist UI. The full tag listing is still walked
-  every sync (cheap tier) so promotion/dormancy decisions have data; only whitelisted sellers'
-  items consume detail-fetch budget.
+Chris: "I don't want pegging/m+m/m+t/solo scenes." Three tiers, cheapest first; every exclusion
+is logged with the matched term/seller for human review - nothing silent.
+
+**Tier 1 - seller-level classification (listing data only, zero extra fetches).** Each sync
+classifies every seller from the titles of its crawled union items (min 3 titles):
+- exclude seller when > 50% of its titles hit the **M/M lexicon** (ガチムチ, ラガーマン,
+  ノンケ, ゲイ, ホモ, 男同士, 体育会, GMPD, ケツワレ, マッチョ) or the **M/T lexicon**
+  (ニューハーフ, 女装子, 女装, 男の娘, シーメール, shemale, ペニ子, ペニクリ, メス男子,
+  竿あり, 玉アリ, オトコノコ, 兜合わせ).
+- Measured on the 728-item crawl: cleanly ejects イケメン専門美男倶楽部 (5/5 M/M),
+  アナール大佐 (21/22 M/T), コスプレ女装 Akina Films, ペニ子; all eight day-one studios
+  above classify clean.
+
+**Tier 2 - item-level title lexicon (listing data).** Hard-exclude items whose titles hit:
+- **M/M lexicon** (as above).
+- **M/T lexicon** (as above; identical to the hardened section-3 trans/crossdress rule).
+- **Pegging/femdom lexicon**: ペニバン, 逆アナル, 逆アナ, 女王様, M男, 前立腺, 男の潮吹き,
+  フィスト. Note: フィスト fires on F-receiving anal fisting too (e.g. ブロッケン) - grouped
+  here as extreme content; tunable on review.
+- **Solo lexicon** (オナニー, 自撮り, シャワー, 入浴, 風呂) **with M/F co-occurrence rescue**:
+  excluded only when NO co-occurrence term is present (中出し, チンポ, ハメ, 貫通, 挿入,
+  セックス, ファック, 性交, AF, フェラ, 射精, 3P, 二穴/2穴). The rescue is load-bearing -
+  straight scenes routinely mention toys/shower.
+
+Measured over the 728-item alias crawl: CLEAN 85.7%, excluded SOLO 4.9% / M/T 4.5% /
+pegging-femdom 3.7% / M/M 1.2%. Every bucket was hand-verified on examples (ニューハーフ竿アリ
+男の娘 -> M/T; ゲイ動画男同士 -> M/M; アナルオナニー個撮 -> solo; 前立腺/フィスト -> femdom).
+Sellers whose catalogues are majority-solo (フェチ倶楽部マンジリ, 31/40 solo) are effectively
+retired by tier 2 without a seller ban.
+
+**Tier 3 - detail-page tag check (runs on the already-budgeted detail fetch).** fc2cmadb
+article tags carry orientation vocabulary the title hides: sampled pages show M/M items tagged
+GMPD / ケツワレ / ガチムチ and M/T items tagged 竿あり, 玉アリ, メス男子, オトコノコ, 女装,
+shemale. Hard-exclude when any article tag is in the orientation tag set. This catches items
+with innocuous titles from mixed sellers.
 
 ### 11.2 Precision blocklist (from the manual mistag review of all 318 seed rows)
 
 The review flagged 26 titles with a broad suspect lexicon and manually read every flag:
 ~97-98% of the cut is genuine M/F anal; true mistags are 5-8 rows. Encode as v1:
 
-- **Seller-level:** ハメ撮りランキング is excluded wholesale (11.1) - removes its solo
-  anal-training row. Kerberos rows carry a femdom-leaning risk: exclude when the title matches
-  the femdom lexicon (女王様, ペニバン, M男, フィスト, 逆アナル); other Kerberos rows pass.
+- **Seller-level:** ハメ撮りランキング fails the activity test (11.1) anyway - no special
+  case needed. Kerberos rows pass through the tier-2 femdom lexicon like everything else.
 - **Softcore lexicon:** exclude rows whose titles match solo/shower patterns (オナニー, シャワー,
   入浴, 自撮り) UNLESS an M/F co-occurrence term is also present (中出し, チンポ, ハメ, 貫通,
   挿入, アナルSEX). Catches the ハメンタル shower/masturbation rows and the エロタウロス
@@ -312,22 +357,14 @@ The UI shows the English `title` with the Japanese `originalTitle` as a secondar
 (`lang="ja"`) so translations can be sanity-checked; `translationProvider` is recorded on
 every scene.
 
-### 11.5 Alias tags - measured coverage note
+### 11.5 Alias tags - union crawl (REVISED 2026-09-25 late evening)
 
-Chris asked whether other fc2cmadb tags alias for anal. Page-1 inspection of nine candidates
-(2026-09-25): whitelisted sellers file some releases under alias tags WITHOUT the アナル tag
-(大人仮面Z had 4 items on page 1 of アナル中出し alone), so a tag-47-only crawl misses real
-whitelist releases. But the alias tags are noisy as sources in their own right:
-アナルセックス skews M/M (top writer 2丁目ギルド), アナル拡張 skews femdom, アナル中出し
-carries heavy trans/crossdress content.
-
-Spec: the cheap listing tier also polls the alias listings
-(アナルファック, アナル中出し, 尻穴, ケツ穴, 肛門, 2穴, 二穴), but an item from an alias
-listing is admitted ONLY when its `writer` is on the seller whitelist - writer identity is
-present on listing rows, so this costs no extra detail fetches. Censorship, safety, and
-blocklist filters then run unchanged. Alias-tag items from non-whitelisted sellers are dropped
-at the listing tier and counted in the sync ledger.
-
+The alias listings (アナルファック, アナル中出し, 尻穴, ケツ穴, 肛門, 2穴, 二穴) are polled in
+the cheap listing tier alongside アナル, for ALL sellers - no whitelist gate (see 11.1). Items
+from any in-union listing enter the pipeline and pass the orientation filter (11.1a), safety
+screen, censorship gate and blocklists like any アナル item. Noisy aliases (アナルセックス,
+アナル拡張) are crawled for seller-activity data but their items pass the same filters; their
+M/M/femdom content is removed by tiers 1-3, not by skipping the tag.
 ### 11.6 Still open
 
 - **#1 windowDays** (whole history vs rolling 90 days) - with seller whitelisting the
