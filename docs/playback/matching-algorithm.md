@@ -65,11 +65,10 @@ retrieval path.
 
 The rule:
 
-1. **Trust.** When >= 3 verified matches for a studio in the trailing 60 days resolve to the
-   same uploader account, mark (studio, uploader) trusted and poll that profile's
-   uploaded-videos feed as an additional candidate pool for the studio's unmatched scenes.
-   Trust decays: one verified false match from the pool revokes it and the pool's links are
-   re-queued through the open-search gate.
+1. **Trust is bespoke.** Chris hand-lists trusted uploaders; no auto-promotion counting, no
+   verification thresholds, no decay machinery. The list is data, not code - a named account
+   goes in, a named account comes out. Seed list (Chris, 2026-09-25): **Vovick17**,
+   **KJUIUI**, **Rafael12021988**, **wmrt0s**.
 2. **Pool construction.** Profile pages newest-first, no search queries at all - this
    sidesteps tag search and title-mangling entirely. Depth: until uploads predate the oldest
    unmatched scene for the studio.
@@ -87,6 +86,14 @@ last-month scenes are absent (whole performers missing: Margo Ferreira, Line Hea
 Megan Noir, Andrea Frank, Ellie Nova; same-day releases not yet up). Uploader pools supplement
 open search; they do not replace it.
 
+Seed-pool notes (census of 6,964 most-recent anal uploads, 2026-09-25): **KJUIUI** (17 uploads
+in 2 weeks, 2.4M views) carries the same Lancelot/Mambo scenes but keeps full performer names
+in Lancelot's house-style titles - the open-search name gate works on him where Vovick's
+retitles need the pool gate. **wmrt0s** (18 uploads) carried the Tushy "STACY CRYSTAL No More
+Fires" uploads (verified true matches). **Rafael12021988** (45 uploads, 6.7M views) is a
+general tube reposter who carries TUSHY content among much else - trust with the same gates,
+not as a coverage guarantee.
+
 ## Tiebreak: picking among multiple accepted candidates
 
 When stages 1+3 accept more than one candidate (duplicate rips are routine - "Perfect Hottie Wants Anal" has 5 in-window sxyprn uploads):
@@ -95,7 +102,61 @@ When stages 1+3 accept more than one candidate (duplicate rips are routine - "Pe
 2. **Rank:** exact-duration closeness first, then upload date closest to release date (where the field exists), then views, then oldest.
 3. **Distinct-identity disagreement = reject.** If surviving candidates have genuinely different identities (different title stems AND different uploaders - i.e. possibly different scenes), do not force a pick. No link beats a wrong link.
 
+## Corpus-scale measurement (2026-09-25, evening)
+
+Last 2 weeks of ALL watchlist scenes (36: Lancelot 21, Maximo 8, Mambo 5, Tushy 2; 29
+runnable - 7 Maximo scenes lack TPDB durations) against the whole reachable eporner corpus
+(15,000 latest uploads + studio pools + trusted pools = 15,546 rows), every accept manually
+FP-reviewed:
+
+| rule | scenes | accepts | true | false | precision |
+|---|---|---|---|---|---|
+| dur +-2s AND (name OR date +-1w) | 12/29 | 244 | 15 | 229 | 6% |
+| dur +-2s AND (name OR MMDD code) [this spec] | 13/29 | 16 | 16 | 0 | 100% |
+| + first-name inside trusted pools only | 14/29 | 18 | 18 | 0 | 100% |
+| dur +-2s AND (name OR code OR studio OR date+-1w) | 14/29 | 249 | 17 | 232 | 7% |
+| same at +-5s / +-30s | 14/29 | 505 / 2878 | 18 / 18 | 487 / 2860 | 4% / 1% |
+
+Disjunct autopsy (+-30s, 4,894 candidates): date+-1w fires 2,842 times, ZERO unique true
+accepts; studio-in-title fires 92 times, zero unique true. Widening Z adds 1 true for 2,600
+extra false. The disjunction buys no recall, only false positives.
+
+Same 29 scenes on sxyprn (query-built candidate pools, titles carry performer + studio):
+26/29 scenes, 84/84 accepts true at +-2s (100%); the generalized disjunction costs 1 FP
+(99%) and the date disjunct literally had zero candidates to admit. Union of both tubes:
+27/29 (93%); eporner's unique contribution is 1 scene.
+
+Duration + date ALONE inside the trusted pool (no name/code): 26% precision at +-2s (11
+true, 31 false - pool-internal duration collisions), best 62% at release+-1d while losing
+half the true scenes. Even inside a trusted pool, name-or-code stays a hard requirement.
+
+Maximo Garcia: no eporner carrier exists (zero watchlist scenes in 15k corpus + 7k listing;
+only one old Lana Roy clip reposted 4x). On sxyprn, Maximo scenes surface under the FEMALE
+performer's alias filed as studio "Onlyfans" (e.g. "Marfe okkk"). For creator studios the
+performer alias is the load-bearing signal; tube studio labels are unreliable. 7/8 recent
+Maximo scenes also lack TPDB durations - see the duration-less fallback below.
+
+## Duration-less scenes (the Maximo problem)
+
+Some scenes reach the watchlist with no duration on TPDB (7/8 recent Maximo Garcia scenes).
+Fallback path, in order:
+
+1. **Enrich at the source.** The watchlist's release URL (the studio's own page) carries the
+   real duration even when TPDB lacks it; scrape it per unmatched scene, then run the normal
+   cascade. Duration enrichment is cheaper and safer than any duration-less gate.
+2. **Creator-studio retrieval.** Creator content (Maximo etc.) surfaces on the tubes under the
+   performer's alias with studio label "Onlyfans" - query the alias, never the tube studio
+   label. Chris-confirmed pattern, 2026-09-25.
+3. **Duration-less admission (last resort, review queue).** Full performer name in the tube
+   title AND high token overlap with the scene title AND upload within release +-2 days. On
+   title-rich sxyprn this is near-safe (its +-2s pool was 84/84 with names); on eporner's
+   title poverty it is weak - park eporner duration-less accepts for review. Backfill the
+   duration from the matched tube video so the scene graduates to the normal cascade.
+
 ## Non-goals / falsified stages (do not re-add)
+
+- Date +-1 week (or any date window) as an admission disjunct: 2,842 fires, 0 unique true accepts - pure firehose.
+- Duration + date alone, even inside trusted pools: 26-65% precision across all windows.
 
 - Thumbnail similarity, all variants (dHash, colour histogram, average colour): no identity signal. Measured on both tubes.
 - Upload-date window as a match condition: 0/19 sensitivity on the catalogue tail; ~19-97% false-positive rate without identity checks on fresh items.
