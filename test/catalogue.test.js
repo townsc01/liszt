@@ -211,3 +211,34 @@ test("Bang! Originals follows pagination, imports recent videos, and confirms an
   const empty = await fetchBangOriginalsScenes({ now: new Date("2027-01-01T12:00:00Z"), fetchImpl: async (url) => ({ ok: true, text: async () => String(url).includes("/video/") ? videoHtml : listingHtml }) });
   assert.deepEqual(empty, { scenes: [], verifiedEmpty: true });
 });
+
+
+test("TPDB bounds concurrent studio-site enrichment", async () => {
+  let active = 0;
+  let peak = 0;
+  const result = await fetchTushyScenes({
+    apiKey: "test-secret",
+    studioSiteConcurrency: 2,
+    fetchImpl: async (url) => {
+      const requestUrl = new URL(url);
+      const data = requestUrl.pathname === "/sites"
+        ? [{ id: 77, name: "Tushy" }]
+        : Array.from({ length: 8 }, (_, index) => ({
+          id: `scene-${index}`,
+          title: `Scene ${index}`,
+          date: "2026-09-20",
+          releaseUrl: `https://studio.example/scene-${index}`,
+        }));
+      return { ok: true, status: 200, json: async () => ({ data }) };
+    },
+    enrichStudioSite: async (item) => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active--;
+      return item;
+    },
+  });
+  assert.equal(result.scenes.length, 8);
+  assert.equal(peak, 2);
+});
