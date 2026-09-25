@@ -1,5 +1,7 @@
 # Liszt
 
+**[ROADMAP.md](ROADMAP.md)** - phases, spec build order, and what each unlocks.
+
 Liszt is a personal hobby project for keeping a rolling 90-day watchlist of scenes released by selected studios. The aim is a useful, reasonably complete, accurate, regularly updated list showing each scene's studio, title, release date, performers, thumbnail, and link to its release page.
 
 ## Specs
