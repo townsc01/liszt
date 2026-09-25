@@ -1,5 +1,7 @@
 # Lane spec: FC2 (anal, uncensored) via fc2cmadb.com
 
+> **Depends on:** link-sources (implemented), matching-algorithm (in progress). **Status:** spec'd.
+
 > **Status: implementation spec for Codex, not working code.** Written 2026-09-25 from a
 > full live crawl completed 2026-09-24. Chris reviews this document; Codex implements from it.
 > Nothing in this branch changes production behaviour - the only runnable artefacts are seed

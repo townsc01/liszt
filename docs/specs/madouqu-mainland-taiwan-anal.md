@@ -1,5 +1,7 @@
 # Lane spec: Taiwan/mainland releases (male-on-female anal) via madouqu.com
 
+> **Depends on:** none for this metadata-only lane (the future playback/matcher work would depend on the FC2 lane's per-lane matcher interface). **Status:** spec'd.
+
 > **Status: FINAL spec, 2026-09-26.** Scope: metadata/catalogue lane only - no playback
 > links, no video embeds (see section 6; the playback-source question is a separate later
 > decision). Written 2026-09-25 from the full-site recon (2026-09-23), the filtered catalogue

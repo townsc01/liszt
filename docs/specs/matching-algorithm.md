@@ -1,5 +1,7 @@
 # The matching algorithm
 
+> **Depends on:** link-sources (implemented), studio-site-scraper (implemented). **Status:** in progress.
+
 > Codex spec. How liszt decides that a tube upload IS a given TPDB scene. Source priority lives in `docs/playback/link-sources.md` (PR #41; embeds in the sxyprn-embed and eporner-embed specs). Every stage below carries its measured evidence from the 2026-09-25 runs (184-scene catalogue, sxyprn + eporner + xvideos).
 
 ## Principle
