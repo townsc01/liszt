@@ -16,8 +16,10 @@ before trusting a miss.)
 
 ## Design
 
-1. **Trigger.** A watchlist scene missing duration (or any match-critical field) after a TPDB
-   poll gets a studio-site scrape, once, at ingest time - not lazily at match time.
+1. **Trigger.** ANY TPDB entry arriving with incomplete metadata (missing duration first;
+   missing release date or performers count too) triggers a source-site scrape immediately -
+   event-driven on the TPDB poll result, not a batch job and not lazy at match time. New
+   ingest and re-polls of existing scenes both fire it.
 2. **Fetch.** GET the stored release URL with a normal UA. Parse JSON-LD / meta tags first
    (cheap, stable); fall back to a per-host extractor only where metadata is absent.
 3. **Per-host extractors.** Small, data-driven: host -> CSS/regex recipe, kept in one table so
@@ -39,8 +41,10 @@ scene 2/2 on sxyprn; token normalization absorbs "Marfe.Ok" vs "Marfe okkk"). Th
 a match signal (13/13 FP) and retrieval never queries the tube studio bucket. Once the
 duration is enriched, the normal cascade admits (Marfe, 1418s exact) or rejects the
 performer-catalog noise (Lola Bratz 8/8 wrong-scene) unchanged. The only creator-studio
-adjustment left: skip the studio-name query for mapped creator studios (it returns noise);
-that is a flag on the studio record, not a mapping table. Coverage floor stands: scenes not
+adjustment left: skip the studio-name query for mapped creator studios (it returns noise).
+Concretely: `creator_studio: true` on the studio record (seed: Maximo Garcia) - a flag, not
+a mapping table. The matching cascade's query construction (#40) checks the flag and builds
+performer-only queries when set. Coverage floor stands: scenes not
 uploaded under any performer alias stay unmatched - retrieval failure, not gate failure.
 
 ## Measured basis
