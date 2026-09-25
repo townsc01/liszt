@@ -242,6 +242,94 @@ Tests to write:
    90 days? The rules say "all anal scenes" for Asian lanes; Liszt today enforces 90 days.
 2. **Crossdresser tags:** reinstate items like 2229202 (tagged 女装子, no trans wording) or keep
    the broader exclusion?
-3. **Sellers as studios:** show the seller (writer name) as a first-class filter in the UI, or
-   keep it as record metadata only?
-4. **Translation provider:** glossary-only at first, or wire the LLM pass (OpenRouter) from day one?
+3. **Sellers as studios:** RESOLVED 2026-09-25 - each whitelisted seller is its own studio
+   (section 11.3).
+4. **Translation provider:** RESOLVED 2026-09-25 - glossary + LLM from day one (section 11.4).
+
+## 11. Revision 2026-09-25 (evening): Chris's decisions applied
+
+Chris reviewed the seed cut and gave four directions. This section overrides the noted earlier
+text; the mechanics elsewhere (rates, fixtures, contract) are unchanged.
+
+### 11.1 Seller whitelist - the lane watches active sellers, not the whole tag
+
+Measured seller concentration and activity over the 318-row seed (40 distinct sellers, top 5 = 72%):
+
+| Seller | Rows | Latest in-tag release | Status |
+| --- | --- | --- | --- |
+| 大人仮面Z (Otona Kamen Z) | 122 (38.4%) | 2026-09-22 | active |
+| エロタウロス (EroTauros) | 58 (18.2%) | 2026-09-18 | active |
+| Kerberos | 26 (8.2%) | 2026-07-13 | quiet ~10 weeks |
+| エロスエ リョーコ。 | 13 (4.1%) | 2026-06-14 | quiet ~3.5 months |
+| ハメ撮りランキング | 9 (2.8%) | 2024-06-18 | inactive ~15 months |
+
+Rules:
+
+- **Seed whitelist: 大人仮面Z and エロタウロス** - the two demonstrably active heavyweights
+  (57% of the cut between them).
+- **Auto-promotion:** a seller with >= 3 in-tag releases in the trailing 90 days joins the
+  whitelist during sync. A whitelisted seller with no in-tag release for 180 days goes dormant:
+  its existing rows stay in the catalogue but it is no longer polled for new items.
+- Kerberos and エロスエ リョーコ。 start **dormant-watch**: existing rows kept, a single new
+  release promotes them back. ハメ撮りランキング starts **excluded** (inactive, and a mistag
+  source - see 11.2).
+- Non-whitelisted sellers never enter the watchlist UI. The full tag listing is still walked
+  every sync (cheap tier) so promotion/dormancy decisions have data; only whitelisted sellers'
+  items consume detail-fetch budget.
+
+### 11.2 Precision blocklist (from the manual mistag review of all 318 seed rows)
+
+The review flagged 26 titles with a broad suspect lexicon and manually read every flag:
+~97-98% of the cut is genuine M/F anal; true mistags are 5-8 rows. Encode as v1:
+
+- **Seller-level:** ハメ撮りランキング is excluded wholesale (11.1) - removes its solo
+  anal-training row. Kerberos rows carry a femdom-leaning risk: exclude when the title matches
+  the femdom lexicon (女王様, ペニバン, M男, フィスト, 逆アナル); other Kerberos rows pass.
+- **Softcore lexicon:** exclude rows whose titles match solo/shower patterns (オナニー, シャワー,
+  入浴, 自撮り) UNLESS an M/F co-occurrence term is also present (中出し, チンポ, ハメ, 貫通,
+  挿入, アナルSEX). Catches the ハメンタル shower/masturbation rows and the エロタウロス
+  balcony-exposure solo without touching M/F scenes that merely mention toys.
+- **Every blocklist exclusion is logged with the matched term and seller for human review** -
+  nothing is silently dropped. Lexicon v1 was derived from one manual pass; expect one or two
+  tuning rounds on live sync data.
+
+### 11.3 Sellers as first-class studios in the UI (resolves open question #3)
+
+- Each whitelisted seller surfaces as its own studio entry: `id: fc2:<writer.slug>`,
+  display name `FC2 / <writer.name>` with a romanised subtitle where known
+  (e.g. "FC2 / 大人仮面Z (Otona Kamen Z)").
+- This **supersedes section 4's single "FC2 - anal (uncensored)" registration**. There is still
+  one adapter (`src/studios/fc2.js`) doing the fetching, but it emits one logical studio per
+  whitelisted seller; scenes carry `seller` metadata exactly as section 4 specifies.
+- Studio ordering in the watchlist follows latest release, same as existing lanes.
+
+### 11.4 Title translation is required (resolves open question #4)
+
+Ship the section 5 design complete from day one: glossary pass always, LLM pass (OpenRouter,
+batched, cached by `video_id`) enabled, fallback order glossary -> LLM -> Japanese original.
+The UI shows the English `title` with the Japanese `originalTitle` as a secondary line
+(`lang="ja"`) so translations can be sanity-checked; `translationProvider` is recorded on
+every scene.
+
+### 11.5 Alias tags - measured coverage note
+
+Chris asked whether other fc2cmadb tags alias for anal. Page-1 inspection of nine candidates
+(2026-09-25): whitelisted sellers file some releases under alias tags WITHOUT the アナル tag
+(大人仮面Z had 4 items on page 1 of アナル中出し alone), so a tag-47-only crawl misses real
+whitelist releases. But the alias tags are noisy as sources in their own right:
+アナルセックス skews M/M (top writer 2丁目ギルド), アナル拡張 skews femdom, アナル中出し
+carries heavy trans/crossdress content.
+
+Spec: the cheap listing tier also polls the alias listings
+(アナルファック, アナル中出し, 尻穴, ケツ穴, 肛門, 2穴, 二穴), but an item from an alias
+listing is admitted ONLY when its `writer` is on the seller whitelist - writer identity is
+present on listing rows, so this costs no extra detail fetches. Censorship, safety, and
+blocklist filters then run unchanged. Alias-tag items from non-whitelisted sellers are dropped
+at the listing tier and counted in the sync ledger.
+
+### 11.6 Still open
+
+- **#1 windowDays** (whole history vs rolling 90 days) - with seller whitelisting the
+  practical volume is small either way; implement the `windowDays` hook and let Chris flip it.
+- **#2 the 女装子 tag** (male crossdresser, not trans woman) - keep excluded unless Chris says
+  otherwise.
