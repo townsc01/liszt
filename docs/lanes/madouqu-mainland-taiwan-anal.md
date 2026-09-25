@@ -118,19 +118,17 @@ watchlist can group and filter by real label from day one. Small, backward-compa
 this lane polls its own database (the madouqu WP REST API), never TPDB. Studio identity,
 release codes, and dates all come from the lane's own source; TPDB enrichment does not apply.
 
-**Window.** Same open question as the FC2 lane: watchlist rules say Asian lanes keep *all* anal
-scenes, Liszt enforces 90 days. The FC2 spec proposes an optional `windowDays` contract field
-(default 90, null = unlimited) - implement it once and use it here too. Open question #1 -
-STILL OPEN for Chris (raised again 2026-09-25).
+**Window: DECIDED (Chris, 2026-09-25) - 90 days.** The optional `windowDays` contract field
+(default 90) applies with its default; no unlimited exception for the Asian lanes.
 
-Open questions for Chris (2026-09-25):
-1. Window: 90 days or unlimited for the Asian lanes?
-2. Performers: madouqu does not structure performer data (names sometimes appear in the excerpt
-   only). Ship with empty performer lists + optional future excerpt parsing, or is excerpt
-   parsing wanted in v1?
-3. Romanisation coverage: the display table covers the top 13 labels; the categories endpoint
-   has 43. Unmapped labels log and fall back to the Chinese name - acceptable, or should the
-   full 43 be named before shipping?
+**Performers: DECIDED (Chris, 2026-09-25) - ship empty.** Performer lists stay `[]` in v1;
+excerpt parsing for 麻豆女郎 names is a separate subsequent-release PR, not part of this lane.
+
+**Label naming: DECIDED (Chris, 2026-09-25) - ad-hoc cheap LLM translation.** No fixed 43-row
+romanisation table: label display names are produced on demand by a cheap LLM translation pass
+when a new category id first appears, then cached on the studio record. The seed table in
+section 5 stays as a cache warm-start for the top labels; unknown labels get LLM-named once and
+logged, never silently guessed twice.
 
 ## 5. Chinese -> English titles and label names
 
