@@ -1,7 +1,7 @@
 # Eporner fallback lane: raising the match rate
 
 Status: design spec for Codex. Not implemented. Do not merge without Chris's review.
-Date: 2026-09-25. Every number below comes from live measurements against the eporner API v2 and the post-refresh liszt catalogue (184 scenes, 5 studios, 90-day window) on that date.
+Date: 2026-09-25, revised same day after Chris's pipeline proposal was tested empirically (see 3). Every number below comes from live measurements against the eporner API v2, the TPDB API, and the post-refresh liszt catalogue (184 scenes, 5 studios, 90-day window).
 
 Goal: eporner as a *fallback* playback source for scenes with no sxyprn link (89/184 scenes at measurement time). Sxyprn stays the primary lane. Eporner is embed-friendly by design - `https://www.eporner.com/embed/<id>/` iframes cleanly (no `x-frame-options`, no CSP `frame-ancestors`; verified live) - so playback is a trivial iframe once a confident match exists. The entire problem is matching.
 
@@ -11,87 +11,97 @@ Goal: eporner as a *fallback* playback source for scenes with no sxyprn link (89
 
 | Field | Value for matching |
 |---|---|
-| `length_sec` | Exact duration in seconds. The strongest signal we have - if we carry duration in our catalogue (see 3a). |
-| `title`, `keywords` | Uploader-written; performer names and sometimes the studio name appear here. `keywords` = tags + title repeated. |
+| `length_sec` | Exact duration in seconds. The strongest signal we have - once we carry TPDB duration (see 2a). |
+| `title`, `keywords` | Uploader-written; performer names and often the studio name appear here. `keywords` = tags + title repeated. |
 | `added` | Upload timestamp (minute precision). Uploads follow the studio release date by days-to-weeks. |
-| `embed`, `url` | Playback + verification targets. |
-| `default_thumb`, `thumbs[]` | 10-16 auto-extracted video frames at small/medium/big. See 2c for why these do not help us yet. |
+| `views`, `embed`, `url` | Tiebreak (multi-upload dedupe) + playback/verification targets. |
+| `default_thumb`, `thumbs[]` | 10-16 auto-extracted video frames at 3 sizes. See 2c for why these do not help us yet. |
 
 Query params: `query` (free text), `per_page` (**1000 works**), `page`, `order=latest`, `thumbsize`, `format=json`.
 
-**One call pulls a studio's entire eporner upload history.** Measured pool sizes (`order=latest&per_page=1000`): tushy 693, maximo garcia 175, lancelot 67, mambo perv 8, bang originals 3. The candidate-pool problem is therefore solved for free: one cached call per studio per sync cycle, then all matching is local. Real pools from measurement day are committed as `fixtures/eporner-studio-pools-2026-09-25.json` for replayable tests.
+**One call pulls a studio's entire eporner upload history.** Measured pool sizes (`order=latest&per_page=1000`): tushy 693, maximo garcia 175, lancelot 67, mambo perv 8, bang originals 3. One cached call per studio per sync cycle; all matching is local. Real pools from measurement day are committed as `fixtures/eporner-studio-pools-2026-09-25.json` for replayable tests.
 
-## 2. What does NOT work (measured, so we stop here)
+## 2. Prerequisites and falsified routes (measured, so we stop guessing)
 
-### 2a. The old approach (title + performer only) - 3-9%, confirmed
+### 2a. Carry `duration` into the catalogue (one line, mandatory)
 
-The matcher removed in PR #25 scored 8/102. Reproduced against the current catalogue: strict title overlap + performer corroboration = 5/184 (3%); relaxed threshold + release-date token matching = 16/184 any-candidate (9%), 9/184 unambiguous. This is the ceiling of text-only matching, not an implementation bug.
+TPDB scene records include `duration` in seconds (confirmed in the public OpenAPI schema `SceneResource.duration` at api.theporndb.net/openapi.json, and pulled live for this analysis). `parseTpdbScene` in `src/studios/tpdb.js` drops it today.
 
-### 2b. Per-performer queries - 0/14
+Change: map `durationSec: record.duration ?? null` in `parseTpdbScene`; update `fixtures/tpdb-tushy.json` and `test/catalogue.test.js`.
 
-A random 14-scene sample, querying eporner by each scene's performers and scoring all results: zero matches. The gap is *coverage*, not scoring: these niche Brazilian studios barely reach eporner within 90 days of release (lancelot 67 uploads all-time vs 71 catalogue scenes; mambo 8; bang 3). No matcher fixes content that is not there.
+Measured duration coverage of the current catalogue (live TPDB pull, 2026-09-25): Tushy 13/13, Lancelot 71/71, Mambo 32/32, Maximo 4/63, Bang 0/5 (TPDB returned no in-window scenes for the matched Bang! Originals site at all - Codex should check which site id the bang adapter resolves). Catalogue-wide: 120/184 (65%).
+
+### 2b. Old title-only matching - 3-9%, confirmed
+
+The matcher removed in PR #25 scored 8/102. Reproduced: strict title overlap + performer corroboration = 5/184 (3%); relaxed threshold + release-date tokens = 9% any-candidate, 5% unambiguous. Text-only matching stays at this ceiling.
 
 ### 2c. Thumbnail matching against TPDB images - falsified on a known hit
 
-Chris's hunch was that thumbnails are the route. Tested directly: for a confirmed exact match (Tushy scene "Perfect Hottie Wants Anal", title score 1.0), the dHash (16x16, 256-bit) distance between our TPDB `thumbnailUrl` and each of the eporner video's 10 preview frames was 95-145 bits - indistinguishable from random (~128). **TPDB thumbnails are studio promo stills, not video frames.** Perceptual hashing cannot bridge promo-still -> frame. Do not build thumbnail matching on TPDB images.
+For a confirmed exact match (Tushy "Perfect Hottie Wants Anal"), dHash (16x16, 256-bit) distances between our TPDB `thumbnailUrl` and each of the eporner video's 10 preview frames: 95-145 bits - indistinguishable from random (~128). **TPDB thumbnails are studio promo stills, not video frames.** Do not build thumbnail matching on TPDB images. (Eporner thumbs ARE frames; frame-to-frame hashing against another frame source - e.g. sxyprn post thumbnails - would work if ever needed. Note and shelve.)
 
-(For the record: eporner `thumbs[]` ARE video frames, so frame-to-frame hashing would work against another frame source - e.g. sxyprn post thumbnails - if that ever becomes useful. Note and shelve.)
+### 2d. Date-stamped titles - 2%
 
-### 2d. Release-date tokens in titles - 2%
+16/946 pooled eporner titles embed an upload date (`26 09 06` style). A free corroborator when present, never a pillar.
 
-Only 16/946 pooled eporner titles embed an upload date (`26 09 06` style). A nice corroborator when present, useless as a pillar.
+### 2e. Searching eporner BY performer name - 0/14
 
-## 3. The recommended pipeline
+Querying the eporner search API with the performer as `query` and scoring results by title: zero matches on a random 14-scene sample. Eporner's search does not reliably surface these scenes under performer names. Filtering a studio pool by performer-in-title (below) is a different, working route.
 
-Ordered; each step is independently shippable.
+## 3. Chris's pipeline, tested: fuzzy performer-in-title AND TPDB duration
 
-### 3a. Carry `duration` into the catalogue (one line, biggest lever)
+Chris's proposal (2026-09-25): match eporner candidates that include the performer (fuzzy) in the title AND match TPDB duration. Tested as specified against the real pools and real TPDB durations:
 
-TPDB's scene payload includes `duration` (seconds; confirmed in the public OpenAPI schema `SceneResource.duration` at api.theporndb.net/openapi.json, and present on the `/scenes` records we already fetch). `parseTpdbScene` in `src/studios/tpdb.js` currently drops it - the catalogue rows have no duration field, which is the only reason duration matching is not already possible.
+- Fuzzy performer: every token of any >=2-token performer name appears in the eporner title's token set (normalised, accent-stripped).
+- Duration gate measured at tolerances 0s / 2s / 20s - **identical results at all three**: true matches land on the exact second. Ship +-2s.
 
-Change: map `durationSec: record.duration ?? null` in `parseTpdbScene`, update `fixtures/tpdb-tushy.json` and the expected shape in `test/catalogue.test.js`. Verify against a live TPDB response before relying on it (the fixture only ever carried the fields the parser read).
+### Measured results
 
-### 3b. Studio-pool fetch with caching
+| Studio | matched / scenes | notes |
+|---|---|---|
+| Tushy | **7/13 (54%)** | 7/7 spot-checked hits are certain true positives (performer in title + duration exact to the second + studio-date naming) |
+| Lancelot | 0/71 | pool has uploads, but none of our 90-day scenes (coverage, not matching) |
+| Mambo | 0/32 | 8 uploads all-time |
+| Maximo | 0/4 with duration | TPDB duration present for only 4/63 Maximo catalogue scenes |
+| Bang | 0/5 | no TPDB rows, no eporner pool |
+| **Total** | **7/184** | precision ~100% measured; recall = coverage-bound |
 
-Per sync cycle, one call per studio: `query=<studio keyword>&per_page=1000&order=latest&thumbsize=medium&format=json`. Keyword per studio authority ("tushy", "lancelot", "mambo perv", "bang originals", "maximo garcia") - these exact strings produced the pools above. Cache the pool in memory keyed by studio; no persistence needed (prototype catalogue wipes on restart anyway).
+### Why the AND gate is load-bearing (collision evidence)
 
-### 3c. Candidate scoring (duration-first)
+- **Performer-only floods**: 48/184 scenes get a performer-in-title hit; only 7 of the 48 survive an exact-duration check. Performer names recur across dozens of unrelated videos.
+- **Duration-only collides, even exactly**: Lancelot scene "Once Again, The Sexy Colombian Ashley Vixen" (2630s) collides to the second with the wrong upload "Belinda Pink ... Debuts With Lancelot" (2630s). Tushy "Legendary Alinas First Anal" (2373s) collides within 2s with the wrong "maddie wren perfect hottie" (2375s). Every duration-only candidate examined that failed the performer gate was a wrong or unverifiable scene. These are all ~40-minute scenes; durations cluster.
+- Title similarity must NOT be a required signal: 3 of the 7 true matches score title 0.00 because the uploader renamed them to "Tushy 26 08 23 angie faith O68p" style (studio + date + performers + random suffix). Title is at most a tiebreak.
 
-For a scene with `durationSec`, filter its studio's pool:
+### Verdict
 
-1. `|length_sec - durationSec| <= 20` (uploader trims and re-encodes shift runtime by seconds; 20s is generous but duration is nearly unique within a studio pool, so collisions stay rare).
-2. Among duration survivors: title token overlap (reuse `titleWords`/`titleScore` from `src/sxyprn.js`) >= 0.5, OR any performer full-name substring in `title`/`keywords`.
-3. Accept only if exactly one candidate survives, or the top candidate beats the runner-up on a second signal (title score margin >= 0.1, or one has a performer hit and the other does not).
+**Adopt Chris's pipeline as specified.** It is surgically precise (every accepted match verifiable, ~100% measured precision) and its recall is bounded entirely by eporner upload coverage, not by the matcher. On the one studio with coverage (Tushy) it already matches 54% of scenes; catalogue-wide it is 7/184 today and will grow as uploads accumulate (re-run matching on every sync; eporner lag is days-to-weeks).
 
-Require >= 2 independent signals for any acceptance (duration alone is one signal; duration + title or duration + performer is a match).
+### Pipeline (final)
 
-Without `durationSec` (older rows): title >= 0.6 + performer hit + upload window (`added` within releaseDate-3d..releaseDate+120d). Expect single-digit percentages - this is the 2a regime, kept only so the lane degrades gracefully.
-
-### 3d. Studio-aware enablement (the honest part)
-
-Coverage, measured: Tushy 10/13 scenes had a candidate at title>=0.5; Maximo 4/63; Lancelot 2/71; Mambo 0/32; Bang 0/5. Eporner fallback is a **Tushy-only story today** and should ship that way: per-studio on/off driven by measured precision on the last sync, default off until a studio demonstrates >= ~30% recall with zero false positives on a hand-checked sample. Enabling globally would produce wrong-video playback for the Brazilian studios - worse than no playback.
-
-### 3e. Storage and UI
-
-On match: `epornerUrl` (the canonical page URL), `epornerEmbedUrl`, `epornerMatchedAt`, `epornerSignals` (which signals fired). Watch overlay: if no sxyprn link but a confident eporner match exists, offer the eporner iframe with a small "via eporner" badge. No sxyprn behavior changes.
+1. Enrich catalogue with `durationSec` (2a).
+2. Per sync: one cached pool call per studio keyword (1).
+3. Per scene with `durationSec`: candidates = pool videos where `|length_sec - durationSec| <= 2` AND fuzzy-performer-in-title.
+4. Multiple surviving candidates are usually duplicate rips of the same scene (observed: identical title stem, different suffix) - pick highest `views`, then oldest `added`. True ambiguity (different title stems) -> no match.
+5. Store `epornerUrl`, `epornerEmbedUrl`, `epornerMatchedAt`, `epornerSignals` (`["duration","performer"]`). UI: iframe embed with a "via eporner" badge when no sxyprn link exists.
+6. Studio-aware enablement: per-studio measured precision on the last sync; default OFF for studios with zero demonstrated coverage (everything except Tushy today). A studio turns on when a hand-checked sample shows hits with zero false positives.
 
 ## 4. Expected rates, stated honestly
 
-- Tushy with duration matching: plausibly 50-70% of tushy scenes (77% had even a loose candidate; duration disambiguates the rest). Tushy is 13/184 of the catalogue.
-- Catalogue-wide today: ~10-20% of the 89 unlinked scenes, almost all of it Tushy. This is a gap-filler, not a primary source - it complements the sxyprn proxy spec, it does not replace it.
-- The number improves on its own as uploads accumulate; a weekly re-match pass over unlinked scenes will pick up late uploads (eporner lag is days-to-weeks).
+- Tushy: ~54% of tushy scenes today (7/13), rising as uploads accumulate.
+- Catalogue-wide: ~4% today, growing weekly; almost entirely Tushy until Brazilian-studio coverage appears.
+- This is a gap-filler that is *right every time it fires*, not a volume play. It complements the sxyprn proxy spec; it does not replace it.
 
 ## 5. Render $0 feasibility
 
-Everything above is a JSON API call per studio per sync plus local scoring - trivial CPU, no new dependencies. The falsified thumbnail route was the only GPU/CPU-heavy idea; it is explicitly out. If frame-hashing is ever revived (2c), pure-JS dHash over `jimp` is sufficient at this scale - but do not build it against TPDB stills.
+One JSON call per studio per sync + local scoring. No new dependencies, no image processing (2c killed the only heavy idea). Trivial.
 
 ## 6. Tests
 
-- `fixtures/eporner-studio-pools-2026-09-25.json` (committed): the real pools from measurement day, slimmed to match-relevant fields. Replay scoring against the committed catalogue snapshot and assert the measured hit set (Tushy hits are known and listed in test comments).
-- Unit: duration tolerance filter, signal-count requirement, ambiguity rejection, per-studio enablement gate.
-- Fixture-based integration: with duration present, "Perfect Hottie Wants Anal" must match exactly one eporner id; with duration absent, the same scene must not match on title alone below threshold.
+- `fixtures/eporner-studio-pools-2026-09-25.json` (committed): real pools, slimmed to match-relevant fields.
+- Fixture durations: extend `fixtures/tpdb-tushy.json` with `duration` and assert the 7 known true matches match, and - critically - assert the known collisions do NOT match: "Legendary Alinas First Anal" (2373s) must not match "maddie wren" (2375s); "Ashley Vixen" (2630s) must not match "Belinda Pink" (2630s).
+- Unit: fuzzy performer token matching (accent/case), +-2s gate, multi-upload dedupe (views then oldest), true-ambiguity rejection, per-studio enablement gate.
+- Integration: replay scoring over the fixture pools; assert exactly the measured hit set.
 
 ## 7. Open questions for Chris
 
-1. Tushy-only enablement at launch: acceptable, or hold the whole lane until Brazilian-studio coverage improves?
-2. Wrong-match tolerance: is a badge-labeled fallback with a "wrong video?" report link enough, or should matches below the ambiguity margin be hidden entirely? (Spec assumes hidden.)
+1. Tushy-only enablement at launch: acceptable, or hold until Brazilian-studio coverage appears?
+2. Bang! Originals: TPDB returned zero in-window scenes for the matched site - want Codex to check the site id the bang adapter resolves, or is Bang sourced differently?
