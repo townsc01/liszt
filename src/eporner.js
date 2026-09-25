@@ -1,20 +1,7 @@
+import { matchTokens, pickMatch } from "./matching.js";
+import { trustedEpornerUploaders } from "./trusted-uploaders.js";
+
 const API_URL = "https://www.eporner.com/api/v2/video/search/";
-
-function tokens(value) {
-  return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().match(/[a-z0-9]+/g) || [];
-}
-
-function containsIdentity(scene, title) {
-  const candidate = new Set(tokens(title));
-  const performer = (scene.performers || []).some((name) => {
-    const nameTokens = tokens(name);
-    return nameTokens.length > 0 && nameTokens.every((token) => candidate.has(token));
-  });
-  const normalizedTitle = tokens(title).join(" ");
-  const sceneTitle = tokens(scene.title).join(" ");
-  return performer || (sceneTitle.length > 0 && normalizedTitle.includes(sceneTitle));
-}
 
 export function validEpornerUrl(value) {
   try {
@@ -32,24 +19,27 @@ export function validEpornerEmbedUrl(value) {
   } catch { return false; }
 }
 
-export function matchEpornerScene(scene, videos) {
-  if (!Number.isFinite(scene.durationSec) || scene.durationSec <= 0) return null;
-  const accepted = videos.filter((video) => Math.abs(Number(video.length_sec) - scene.durationSec) <= 2 &&
-    containsIdentity(scene, video.title) && validEpornerUrl(video.url) && validEpornerEmbedUrl(video.embed));
-  if (!accepted.length) return null;
-  const stems = new Set(accepted.map((video) => tokens(video.title).join(" ")
-    .replace(/\b(?:new|watch|download)\b/g, "").replace(/\b[a-z]*\d+[a-z0-9]*\b/g, "").trim()));
-  if (stems.size > 1) return null;
-  accepted.sort((a, b) => Number(b.views || 0) - Number(a.views || 0) || String(a.added || "").localeCompare(String(b.added || "")));
-  return accepted[0];
+export function matchEpornerScene(scene, videos, options = {}) {
+  const safe = videos.filter((video) => validEpornerUrl(video.url) && validEpornerEmbedUrl(video.embed))
+    .map((video) => ({ ...video, duration: Number(video.length_sec) }));
+  const match = pickMatch(scene, safe, options);
+  return match ? videos.find((video) => video.url === match.url) || null : null;
 }
 
-export function createEpornerLookup({ fetchImpl = fetch } = {}) {
+export function buildEpornerQueries(scene) {
+  const names = [...new Set((scene.performers || []).map((name) => matchTokens(name).join(" ")).filter(Boolean))].slice(0, 2);
+  const nameTokens = new Set(names.flatMap(matchTokens));
+  const title = matchTokens(scene.title).filter((token) => !nameTokens.has(token)).slice(0, 5).join(" ");
+  const code = String(scene.title || "").match(/\bOB\d{3,}\b/i)?.[0];
+  return [...new Set([...names, scene.creatorStudio ? null : scene.studio, code, title].filter(Boolean))];
+}
+
+export function createEpornerLookup({ fetchImpl = fetch, trustedPoolLoader = null, trustedUploaders = trustedEpornerUploaders } = {}) {
   const pools = new Map();
-  async function pool(studio) {
-    if (!pools.has(studio)) pools.set(studio, (async () => {
+  async function pool(query) {
+    if (!pools.has(query)) pools.set(query, (async () => {
       const url = new URL(API_URL);
-      url.searchParams.set("query", studio);
+      url.searchParams.set("query", query);
       url.searchParams.set("per_page", "1000");
       url.searchParams.set("page", "1");
       url.searchParams.set("order", "latest");
@@ -60,7 +50,19 @@ export function createEpornerLookup({ fetchImpl = fetch } = {}) {
       if (!data || !Array.isArray(data.videos)) throw new Error("Eporner returned an invalid response");
       return data.videos;
     })());
-    return pools.get(studio);
+    return pools.get(query);
   }
-  return async (scene) => matchEpornerScene(scene, await pool(scene.studio));
+  return async (scene) => {
+    if (!Number.isFinite(scene.durationSec)) return null;
+    const results = await Promise.all(buildEpornerQueries(scene).map(pool));
+    const openVideos = [...new Map(results.flat().map((video) => [video.url, video])).values()];
+    const openMatch = matchEpornerScene(scene, openVideos);
+    if (openMatch || !trustedPoolLoader || !Number.isFinite(scene.durationSec)) return openMatch;
+    for (const account of trustedUploaders) {
+      const videos = await trustedPoolLoader(account, scene);
+      const match = matchEpornerScene(scene, Array.isArray(videos) ? videos : [], { trustedPool: true });
+      if (match) return match;
+    }
+    return null;
+  };
 }

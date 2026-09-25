@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createEpornerLookup, matchEpornerScene, validEpornerEmbedUrl, validEpornerUrl } from "../src/eporner.js";
+import { buildEpornerQueries, createEpornerLookup, matchEpornerScene, validEpornerEmbedUrl, validEpornerUrl } from "../src/eporner.js";
 
 const scene = { studio: "Tushy", title: "Perfect Hottie Wants Anal", performers: ["Maddie Wren"], durationSec: 2160 };
 const video = { title: "Tushy Maddie Wren Perfect Hottie Wants Anal", length_sec: 2159, views: 42,
@@ -16,7 +16,7 @@ test("eporner accepts only canonical API links behind the duration and identity 
   assert.equal(validEpornerEmbedUrl("https://eporner.com.evil.example/embed/ABC123/"), false);
 });
 
-test("eporner lookup caches one studio-keyword pool", async () => {
+test("eporner lookup caches performer, studio and title-keyword pools", async () => {
   const calls = [];
   const lookup = createEpornerLookup({ fetchImpl: async (url) => {
     calls.push(String(url));
@@ -24,8 +24,8 @@ test("eporner lookup caches one studio-keyword pool", async () => {
   } });
   assert.equal(await lookup(scene), video);
   assert.equal(await lookup({ ...scene, title: "No match", performers: ["Nobody"] }), null);
-  assert.equal(calls.length, 1);
-  const request = new URL(calls[0]);
-  assert.equal(request.searchParams.get("query"), "Tushy");
-  assert.equal(request.searchParams.get("per_page"), "1000");
+  assert.equal(calls.length, 5);
+  assert.ok(calls.every((call) => new URL(call).searchParams.get("per_page") === "1000"));
+  assert.ok(calls.some((call) => new URL(call).searchParams.get("query") === "Tushy"));
+  assert.ok(buildEpornerQueries({ ...scene, creatorStudio: true }).every((query) => query !== "Tushy"));
 });
