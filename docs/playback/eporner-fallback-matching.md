@@ -31,6 +31,8 @@ Change: map `durationSec: record.duration ?? null` in `parseTpdbScene`; update `
 
 Measured duration coverage of the current catalogue (live TPDB pull, 2026-09-25): Tushy 13/13, Lancelot 71/71, Mambo 32/32, Maximo 4/63, Bang 0/5 (TPDB returned no in-window scenes for the matched Bang! Originals site at all - Codex should check which site id the bang adapter resolves). Catalogue-wide: 120/184 (65%).
 
+Operational note (2026-09-25): of the API keys on hand for ThePornDB, only the one labelled "ThePornDB API token (Cloud0 Stash)" authenticated successfully during this analysis; two other stored keys returned 401 Unauthenticated and were purged. Render's TPDB_API_KEY (set by Chris in the dashboard, no entry in render.yaml) is verified working - the 2026-09-25T07:16Z live refresh returned all five studios with error null. If Codex hits 401s, the key being used is stale, not the API.
+
 ### 2b. Old title-only matching - 3-9%, confirmed
 
 The matcher removed in PR #25 scored 8/102. Reproduced: strict title overlap + performer corroboration = 5/184 (3%); relaxed threshold + release-date tokens = 9% any-candidate, 5% unambiguous. Text-only matching stays at this ceiling.
