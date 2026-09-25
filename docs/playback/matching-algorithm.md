@@ -147,11 +147,12 @@ Fallback path, in order:
 2. **Creator-studio retrieval.** Creator content (Maximo etc.) surfaces on the tubes under the
    performer's alias with studio label "Onlyfans" - query the alias, never the tube studio
    label. Chris-confirmed pattern, 2026-09-25.
-3. **Duration-less admission (last resort, review queue).** Full performer name in the tube
-   title AND high token overlap with the scene title AND upload within release +-2 days. On
-   title-rich sxyprn this is near-safe (its +-2s pool was 84/84 with names); on eporner's
-   title poverty it is weak - park eporner duration-less accepts for review. Backfill the
-   duration from the matched tube video so the scene graduates to the normal cascade.
+3. **No duration-less admission.** Chris ruling 2026-09-25: no manual review in the end UX.
+   Without a duration there is no auto-grade identity separator (alias queries return the
+   performer's whole catalog - measured 8/8 wrong-scene for Lola Bratz), so duration-less
+   candidates are dropped, not queued. The scene stays unmatched and is retried silently on
+   later passes as pools and enrichment improve. Backfill the duration from any matched tube
+   card so the scene graduates to the normal cascade.
 
 ## Non-goals / falsified stages (do not re-add)
 
