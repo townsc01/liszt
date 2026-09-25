@@ -2,7 +2,7 @@
 
 > **Depends on:** link-sources (implemented), studio-site-scraper (implemented). **Status:** in progress.
 
-> Codex spec. How liszt decides that a tube upload IS a given TPDB scene. Source priority lives in `docs/playback/link-sources.md` (PR #41; embeds in the sxyprn-embed and eporner-embed specs). Every stage below carries its measured evidence from the 2026-09-25 runs (184-scene catalogue, sxyprn + eporner + xvideos).
+> Codex spec. How liszt decides that a tube upload IS a given TPDB scene. Source priority lives in `docs/specs/link-sources.md` (PR #41; embeds in the sxyprn-embed and eporner-embed specs). Every stage below carries its measured evidence from the 2026-09-25 runs (184-scene catalogue, sxyprn + eporner + xvideos).
 
 ## Principle
 
@@ -153,8 +153,9 @@ Fallback path, in order:
    Without a duration there is no auto-grade identity separator (alias queries return the
    performer's whole catalog - measured 8/8 wrong-scene for Lola Bratz), so duration-less
    candidates are dropped, not queued. The scene stays unmatched and is retried silently on
-   later passes as pools and enrichment improve. Backfill the duration from any matched tube
-   card so the scene graduates to the normal cascade.
+   later passes as pools and enrichment improve. Duration enrichment for these scenes is
+   owned end-to-end by the studio-site scraper spec (studio-site provenance) - the cascade
+   only matches, it never writes metadata.
 
 ## Non-goals / falsified stages (do not re-add)
 

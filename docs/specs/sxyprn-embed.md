@@ -3,7 +3,7 @@
 > **Depends on:** link-sources (implemented). **Status:** spec'd.
 
 > Codex spec. How a verified sxyprn link becomes playable video in liszt. Companion to
-> `docs/playback/link-sources.md` (link resolution) and `docs/playback/eporner-embed.md`.
+> `docs/specs/link-sources.md` (link resolution) and `docs/specs/eporner-embed.md`.
 > Docs-only; do not merge without review.
 
 ## The problem: sxyprn CDN URLs are IP-bound

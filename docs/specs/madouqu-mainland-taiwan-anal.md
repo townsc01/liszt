@@ -1,6 +1,6 @@
 # Lane spec: Taiwan/mainland releases (male-on-female anal) via madouqu.com
 
-> **Depends on:** none for this metadata-only lane (the future playback/matcher work would depend on the FC2 lane's per-lane matcher interface). **Status:** spec'd.
+> **Depends on:** none for this metadata-only lane (the future playback/matcher work would depend on the per-lane matcher contract in link-sources.md). **Status:** spec'd.
 
 > **Status: FINAL spec, 2026-09-26.** Scope: metadata/catalogue lane only - no playback
 > links, no video embeds (see section 6; the playback-source question is a separate later
@@ -59,8 +59,8 @@ Apply in order; log every exclusion with its reason.
    - The v2 run verified the 163-row file contains zero 萝莉 titles (the one that existed was
      already removed in the plug-only cleanup). 人妻/调教/SM/母狗 vocabulary is genre convention
      for these labels and stays.
-   - *Open question #3 (section 9): incest-roleplay titles (母女/姐妹/小姨子 etc.) exist in the
-     corpus and are currently NOT filtered. Chris to rule.*
+   - *RESOLVED 2026-09-26 (Chris): incest-roleplay titles (母女/姐妹/小姨子 etc.) are NOT a
+     rule-out criterion - no filter for them.*
 2. **Trans/gay exclusion.** Title contains 伪娘, 人妖, TS, ladyboy, 男男, 耽美 -> exclude.
    (This corpus is overwhelmingly male-on-female; the rule is a backstop. Chris confirmed trans
    is already excluded.)
@@ -135,7 +135,9 @@ logged, never silently guessed twice.
 
 ## 5. Chinese -> English titles and label names
 
-Same architecture as the FC2 lane (canonical original + English display + provider marking);
+Same architecture as the FC2 lane (canonical original + English display + provider marking),
+built on the shared `src/translate.js` module the FC2 lane owns (whichever lane implements
+first builds it; this lane supplies its glossary and prompts);
 only the language and dictionaries differ.
 
 - **Title translation:** glossary pass for the heavy genre vocabulary (人妻 = wife/married woman,
@@ -185,7 +187,7 @@ feeds his download stack, not in-app playback). Nothing about playback blocks th
 watchlist value is knowing what exists; rows render with their source-record link only.
 
 Do **not** run the Sxyprn enrichment against this lane (zero expected hit rate, wasted requests);
-the per-lane matcher interface from the FC2 spec should make video matching opt-in per lane.
+the per-lane matcher contract in `docs/specs/link-sources.md` makes video matching opt-in per lane.
 
 ## 7. Sync design (ongoing)
 
@@ -238,6 +240,7 @@ DECIDED (all Chris, 2026-09-25, applied in the sections above):
 2. **Performers:** ship empty; excerpt parsing is a separate later PR.
 3. **Label naming:** ad-hoc cheap LLM translation, cached; the section-5 table is a warm start.
 4. **Studios:** per-label studios, not a generic flattened label.
+5. **Incest-roleplay titles (2026-09-26):** NOT a rule-out criterion; no filter for them.
 
 Still open (does not block implementation):
 

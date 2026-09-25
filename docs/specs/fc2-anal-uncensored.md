@@ -1,6 +1,6 @@
 # Lane spec: FC2 (anal, uncensored) via fc2cmadb.com
 
-> **Depends on:** link-sources (implemented), matching-algorithm (in progress). **Status:** spec'd.
+> **Depends on:** link-sources (implemented - incl. its per-lane matcher contract), matching-algorithm (in progress). **Status:** spec'd.
 
 > **Status: implementation spec for Codex, not working code.** Written 2026-09-25 from a
 > full live crawl completed 2026-09-24. Chris reviews this document; Codex implements from it.
@@ -135,6 +135,9 @@ The UI is English-first; FC2 titles are Japanese. Design:
 - **Canonical text stays Japanese.** `originalTitle` always holds the verbatim title.
   `title` holds the English rendering when one exists. Identity is always `video_id` - translation
   never affects identity, dedupe, or change detection.
+- **Shared module.** The two-stage pipeline below is built ONCE as `src/translate.js`
+  (glossary + LLM, cache, provider marking) and shared with the madouqu lane. Whichever lane
+  implements first builds the module; the second lane supplies its own glossary and prompts.
 - **Two-stage translation, at sync time (server-side only):**
   1. **Glossary pass (offline, always runs).** FC2 titles are highly formulaic. A maintained
      dictionary normalises the boilerplate: 【個人撮影】 = [amateur shoot], 無修正 = uncensored,
@@ -171,17 +174,17 @@ Direction, in order of preference:
    `fc2-ppv-<video_id>` for fc2 scenes and require an exact code match instead of the 0.75
    title-score threshold. Code matches are effectively unambiguous; keep the verified-details
    step unchanged. This needs no new infrastructure and should be tried first.
-2. **Eporner is a standing co-lane for FC2, not a fallback (Chris, 2026-09-25: "keep an eporner
-   pipeline working for the fc2 content").** Measured 2026-09-25: eporner carries 6,356 videos
-   titled verbatim `FC2 PPV <code>` (+ "Fc2 Ppv", ".H265" suffix variants), with fresh uploads
-   daily - the FC2 scene's own code IS the eporner title, so the PPV code is the search string
-   unchanged and admission is exact-code-in-title plus duration proximity when the source
-   record carries a duration. Code identity is the strongest signal we have ever measured
-   (verbatim unique identifier, no name fuzziness at all). Port the Eporner matcher behind the
-   same per-lane interface rather than restoring it globally - the western lanes are happy on
-   Sxyprn. The old Lustpress/Eporner combo was built in #21 and removed in #25 (commit
-   7272a85); the code is in git history (`src/eporner.js`, `test/eporner.test.js`, the
-   `vendor/lustpress` submodule).
+2. **Eporner is a standing co-lane for FC2 (Chris, 2026-09-25: "keep an eporner pipeline
+   working for the fc2 content").** Eporner is already the catalogue-wide second source
+   (link-sources spec, implemented in #46, `src/eporner.js` on main) - this lane CONSUMES the
+   existing global matcher; there is nothing to port. Measured 2026-09-25: eporner carries
+   6,356 videos titled verbatim `FC2 PPV <code>` (+ "Fc2 Ppv", ".H265" suffix variants), with
+   fresh uploads daily - the FC2 scene's own code IS the eporner title, so the PPV code is the
+   search string unchanged and admission is exact-code-in-title plus duration proximity when
+   the source record carries a duration. Code identity is the strongest signal we have ever
+   measured (verbatim unique identifier, no name fuzziness at all). The lane declares this
+   matcher and its exact-code identity rule through the per-lane matcher contract in
+   `docs/specs/link-sources.md`.
 3. **FC2 itself is the canonical store but out of scope** (paid, region- and login-restricted).
 
 Whatever the matcher: server-side only, verified before display, never auto-link below the
