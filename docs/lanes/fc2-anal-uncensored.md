@@ -306,7 +306,7 @@ classifies every seller from the titles of its crawled union items (min 3 titles
 - **M/T lexicon** (as above; identical to the hardened section-3 trans/crossdress rule).
 - **Pegging/femdom lexicon**: ペニバン, 逆アナル, 逆アナ, 女王様, M男, 前立腺, 男の潮吹き,
   フィスト. Note: フィスト fires on F-receiving anal fisting too (e.g. ブロッケン) - grouped
-  here as extreme content; tunable on review.
+  here as extreme content. Chris confirmed 2026-09-25: leave it as is.
 - **Solo lexicon** (オナニー, 自撮り, シャワー, 入浴, 風呂) **with M/F co-occurrence rescue**:
   excluded only when NO co-occurrence term is present (中出し, チンポ, ハメ, 貫通, 挿入,
   セックス, ファック, 性交, AF, フェラ, 射精, 3P, 二穴/2穴). The rescue is load-bearing -
