@@ -3,7 +3,7 @@
 > **Depends on:** link-sources (implemented). **Status:** spec'd.
 
 > Codex spec. How a verified eporner link becomes playable video in liszt. Companion to
-> `docs/playback/link-sources.md` (link resolution) and `docs/playback/sxyprn-embed.md`.
+> `docs/specs/link-sources.md` (link resolution) and `docs/specs/sxyprn-embed.md`.
 > Docs-only; do not merge without review.
 
 ## Why eporner needs no proxy

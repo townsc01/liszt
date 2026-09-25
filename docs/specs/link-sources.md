@@ -61,12 +61,42 @@ Three-tube union: 108/184 = 58.7%.
 
 ## Resolution flow
 
-1. First pass (existing): sxyprn performer/code search, title-score >= 0.75, details-verified.
-2. Second pass (PR #36 mechanism): for scenes still unmatched with a known duration, re-sift
-   the search cards through the matching algorithm. No extra HTTP: cards already carry
-   `durationSeconds`.
-3. Third pass: eporner studio-pool sweep for remaining unmatched scenes with durations, same
-   gate.
+1. First pass: sxyprn performer/code search, details-verified.
+2. Second pass: for scenes still unmatched with a known duration, re-sift the search cards.
+   No extra HTTP: cards already carry `durationSeconds`.
+3. Third pass: eporner studio-pool sweep for remaining unmatched scenes with durations.
+
+**One gate (DECIDED 2026-09-26).** The matching algorithm's cascade is the ONLY admission
+gate in every pass - passes differ in query breadth, never in the gate. The legacy 0.75
+title-score threshold and any duration-only admission path are superseded by the cascade.
+
+## Per-lane matcher contract
+
+Each catalogue lane (a studio adapter, or a lane adapter like FC2) declares whether and how
+its scenes match against tube sources:
+
+- **matcher**: the module that maps the lane's scene records to tube candidates. Western
+  studios: the matching-algorithm cascade against sxyprn + eporner. FC2: exact PPV-code
+  identity. A lane may declare NO matcher (metadata-only, e.g. madouqu) - sync then skips
+  video matching for its scenes entirely.
+- **identity**: the lane's match condition (the cascade's stage-3 gate for western studios;
+  exact code-in-title for FC2).
+- Sync consults the lane's declaration before matching anything. The current implementation
+  matches every scene against sxyprn+eporner globally; bringing sync under this contract is
+  prerequisite work for the FC2 lane, and the FC2/madouqu lane specs point here for it.
+
+The contract lives here because link-sources owns which sources exist and how links are
+stored; the gates themselves live in `docs/specs/matching-algorithm.md` (western) and the
+lane specs (per-lane identity rules).
+
+## Link lifecycle: dead-link re-verify
+
+Links go stale (uploader deletion, DMCA, removed posts). Each sync re-verifies a rotating
+slice of stored links, cheaply: sxyprn watch URLs via a fetch of the watch page, eporner
+links via the API's `video/id` lookup. A link that fails verification is marked dead on the
+scene record (kept for history, hidden from the UI) and the scene re-enters the normal
+resolution flow on a later pass. This is where the eporner-embed spec's "mark the link dead
+on the next sync's spot-check" hook lands.
 
 ## Non-goals
 
