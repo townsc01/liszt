@@ -33,11 +33,13 @@ For a studio in the map:
 2. **Duration enrichment first.** When TPDB lacks a duration, scrape it from the studio's own
    release page (watchlist release URL; sexlikereal/analvids pages embed ISO-8601 durations)
    or backfill it from a matched tube card. Then the normal cascade (#40) runs unchanged.
-3. **Duration-less admission is review-grade only.** Full performer name in the tube title AND
-   high token overlap with the scene title AND upload within release +-2 days. Never
-   auto-links; goes to the review queue. Measured basis: alias queries return the performer's
-   whole catalog (8/8 name-bearing but wrong scenes for Lola Bratz and Medusa), so without a
-   duration the residual ambiguity is real.
+3. **Duration-less admission does not exist.** Chris ruling 2026-09-25: no manual review in
+   the end UX. A scene either matches on auto-link-grade signals (duration gate + name/code)
+   or stays unmatched and is retried silently on later passes as pools, aliases, and
+   enrichment improve. Measured basis: alias queries return the performer's whole catalog
+   (8/8 name-bearing but wrong scenes for Lola Bratz and Medusa) - without a duration there
+   is no auto-grade identity separator, so duration-less candidates are dropped, not queued.
+   This makes duration enrichment (step 2) the whole game for creator studios.
 4. **Coverage expectation is low.** 3/6 tested Maximo aliases returned zero name-bearing
    sxyprn cards - many creator scenes are simply not on the tubes. Absence is the normal
    outcome, not a pipeline bug.
