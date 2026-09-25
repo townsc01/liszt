@@ -36,19 +36,28 @@ export function createVideoProxy({ videoDetails, fetchImpl = fetch, now = () => 
     return operation;
   }
 
-  async function upstream(sceneId, postUrl, range, signal, retry = true) {
+  async function upstream(sceneId, postUrl, range, signal, retry = true, impl = fetchImpl) {
     const streamUrl = await mint(sceneId, postUrl);
-    const result = await fetchImpl(streamUrl, {
-      headers: range ? { range } : {},
-      redirect: "follow",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]),
-    });
+    // The timeout covers only a stalled connect/headers; once the upstream response
+    // arrives it must not kill a healthy long stream mid-transfer.
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError")), 30_000);
+    let result;
+    try {
+      result = await impl(streamUrl, {
+        headers: range ? { range } : {},
+        redirect: "follow",
+        signal: AbortSignal.any([signal, timeout.signal]),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     const invalidToken = result.headers.get("content-type")?.toLowerCase().startsWith("text/html");
     if (invalidToken && retry) {
       await result.body?.cancel();
       cache.delete(sceneId);
       await mint(sceneId, postUrl, true);
-      return upstream(sceneId, postUrl, range, signal, false);
+      return upstream(sceneId, postUrl, range, signal, false, impl);
     }
     if (invalidToken || ![200, 206].includes(result.status) || !result.body) {
       await result.body?.cancel();
@@ -59,12 +68,12 @@ export function createVideoProxy({ videoDetails, fetchImpl = fetch, now = () => 
 
   return {
     resolve: mint,
-    async stream(sceneId, postUrl, request, response) {
+    async stream(sceneId, postUrl, request, response, { fetchImpl: override } = {}) {
       const controller = new AbortController();
       const abort = () => controller.abort();
       request.once("aborted", abort);
       response.once("close", () => { if (!response.writableEnded) abort(); });
-      const result = await upstream(sceneId, postUrl, request.headers.range, controller.signal);
+      const result = await upstream(sceneId, postUrl, request.headers.range, controller.signal, true, override ?? fetchImpl);
       const headers = { "cache-control": "no-store" };
       for (const name of ["content-type", "content-length", "content-range", "accept-ranges"]) {
         const value = result.headers.get(name);
