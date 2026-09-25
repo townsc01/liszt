@@ -133,9 +133,9 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
   };
 }
 
-function legacyLinks(scene) {
-  const verifiedAt = scene.sxyprnCheckedAt || new Date(0).toISOString();
-  return (scene.sxyprnUrls || []).filter(validSxyprnUrl).map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt }));
+export function legacySxyprnLinks(scene) {
+  const verifiedAt = scene?.sxyprnCheckedAt || new Date(0).toISOString();
+  return (scene?.sxyprnUrls || []).filter(validSxyprnUrl).map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt }));
 }
 
 function unchanged(scene, prior) {
@@ -163,7 +163,7 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
     }
     const prior = byId.get(scene.id) || byReleaseUrl.get(scene.releaseUrl);
     const same = unchanged(scene, prior);
-    const priorLinks = same ? ([...(prior.videoUrls || []), ...legacyLinks(prior)]).filter((link, index, links) =>
+    const priorLinks = same ? ([...(prior.videoUrls || []), ...legacySxyprnLinks(prior)]).filter((link, index, links) =>
       ((link.source === "sxyprn" && validSxyprnUrl(link.url)) || link.source === "eporner") && links.findIndex((item) => item.source === link.source && item.url === link.url) === index) : [];
     const checkedAt = same ? Date.parse(prior.videoCheckedAt || prior.sxyprnCheckedAt) : NaN;
     const retained = { ...scene, ...(priorLinks.length ? { videoUrls: priorLinks } : {}),

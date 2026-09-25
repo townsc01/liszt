@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createSxyprnLookup, enrichSxyprnLinks, enrichStoredCatalogue, searchSlug, validSxyprnUrl } from "../src/sxyprn.js";
+import { createSxyprnLookup, enrichSxyprnLinks, enrichStoredCatalogue, legacySxyprnLinks, searchSlug, validSxyprnUrl } from "../src/sxyprn.js";
 import { renderSceneLinks } from "../public/scene-links.js";
-import { isSxyprnVideo, topSxyprnUrl } from "../public/scene-video.js";
+import { isSxyprnVideo, topSxyprnUrl, topVideoLink } from "../public/scene-video.js";
 import { sync } from "../src/sync.js";
 
 const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Double Anal Debut", releaseDate: "2026-09-20", performers: ["Lana Wills"], durationSec: 1800, releaseUrl: "https://source.example/1" };
@@ -125,6 +125,26 @@ test("the user-confirmed Naty Heat scene retains both Sxyprn uploads", async () 
   ]);
   assert.match(renderSceneLinks(linked), /Sxyprn 1 ↗/);
   assert.match(renderSceneLinks(linked), /Sxyprn 2 ↗/);
+});
+
+test("legacy sxyprnUrls-only scenes keep playback and links after the videoUrls migration", () => {
+  const legacy = { ...scene, sxyprnUrls: [url, other], sxyprnCheckedAt: "2026-09-23T12:00:00.000Z" };
+  assert.deepEqual(legacySxyprnLinks(legacy).map((link) => link.url), [url, other]);
+  assert.equal(topSxyprnUrl(legacy), url);
+  assert.deepEqual(topVideoLink(legacy), { source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" });
+  assert.match(renderSceneLinks(legacy), /Sxyprn 1 ↗/);
+  assert.match(renderSceneLinks(legacy), /Sxyprn 2 ↗/);
+  const withoutCheckedAt = { ...scene, sxyprnUrls: [url] };
+  assert.equal(topSxyprnUrl(withoutCheckedAt), url);
+  assert.equal(renderSceneLinks(withoutCheckedAt).includes("Sxyprn ↗"), true);
+  assert.equal(topVideoLink({ ...scene, sxyprnUrls: ["javascript:alert(1)"] }), null);
+});
+
+test("legacy links migrate into videoUrls on the next enrichment pass", async () => {
+  const legacy = { ...scene, sxyprnUrls: [url], sxyprnCheckedAt: "2026-09-23T12:00:00.000Z" };
+  const [migrated] = await enrichSxyprnLinks([legacy], [legacy], async () => { throw new Error("should not recheck"); }, { now: new Date("2026-09-24T00:00:00Z") });
+  assert.deepEqual(migrated.videoUrls, [{ source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" }]);
+  assert.equal(migrated.sxyprnUrls, undefined);
 });
 
 test("studio sync remains available when Sxyprn is not available", async () => {
