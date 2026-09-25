@@ -29,3 +29,17 @@ test("eporner lookup caches performer, studio and title-keyword pools", async ()
   assert.ok(calls.some((call) => new URL(call).searchParams.get("query") === "Tushy"));
   assert.ok(buildEpornerQueries({ ...scene, creatorStudio: true }).every((query) => query !== "Tushy"));
 });
+
+test("eporner tolerates partial query failures and evaluates trusted accounts as one pool", async () => {
+  const lookup = createEpornerLookup({
+    fetchImpl: async (url) => new URL(url).searchParams.get("query") === "Tushy"
+      ? { ok: true, json: async () => ({ videos: [] }) }
+      : { ok: false, status: 503 },
+    trustedUploaders: ["one", "two"],
+    trustedPoolLoader: async (account) => [account === "one"
+      ? { ...video, title: "Maddie", author: undefined }
+      : { ...video, title: "Maddie Wren different scene", url: "https://www.eporner.com/video-XYZ789/example/",
+        embed: "https://www.eporner.com/embed/XYZ789/", author: undefined }],
+  });
+  assert.equal(await lookup(scene), null);
+});

@@ -54,15 +54,21 @@ export function createEpornerLookup({ fetchImpl = fetch, trustedPoolLoader = nul
   }
   return async (scene) => {
     if (!Number.isFinite(scene.durationSec)) return null;
-    const results = await Promise.all(buildEpornerQueries(scene).map(pool));
-    const openVideos = [...new Map(results.flat().map((video) => [video.url, video])).values()];
+    const results = await Promise.allSettled(buildEpornerQueries(scene).map(pool));
+    const successful = results.filter((result) => result.status === "fulfilled");
+    if (!successful.length) throw results[0]?.reason || new Error("Eporner search unavailable");
+    const openVideos = [...new Map(successful.flatMap((result) => result.value).map((video) => [video.url, video])).values()];
     const openMatch = matchEpornerScene(scene, openVideos);
     if (openMatch || !trustedPoolLoader || !Number.isFinite(scene.durationSec)) return openMatch;
+    const trustedVideos = [];
     for (const account of trustedUploaders) {
-      const videos = await trustedPoolLoader(account, scene);
-      const match = matchEpornerScene(scene, Array.isArray(videos) ? videos : [], { trustedPool: true });
-      if (match) return match;
+      try {
+        const videos = await trustedPoolLoader(account, scene);
+        if (Array.isArray(videos)) trustedVideos.push(...videos.map((video) => ({ ...video, uploader: video.uploader || account })));
+      } catch {
+        // One unavailable profile must not hide candidates from the other hand-trusted accounts.
+      }
     }
-    return null;
+    return matchEpornerScene(scene, trustedVideos, { trustedPool: true });
   };
 }

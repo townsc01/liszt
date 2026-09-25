@@ -2,7 +2,7 @@ const DECORATION_WORDS = new Set(["new", "watch", "download"]);
 
 /** Normalise tube text without losing characters represented by compatibility glyphs. */
 export function matchTokens(value) {
-  return String(value || "").normalize("NFKC").normalize("NFKD")
+  return String(value || "").normalize("NFKC").replace(/([a-z])([A-Z])/g, "$1 $2").normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "").toLowerCase().match(/[a-z0-9]+/g) || [];
 }
 
@@ -59,7 +59,8 @@ export function titleStem(value) {
 }
 
 function uploader(candidate) {
-  return String(candidate.uploader || candidate.user || candidate.author || candidate.username || "").toLowerCase();
+  const value = candidate.uploader || candidate.user || candidate.author || candidate.username;
+  return value ? String(value).toLowerCase() : null;
 }
 
 function rank(scene, left, right) {
@@ -94,6 +95,7 @@ export function pickMatch(scene, candidates, { trustedPool = false, identity = n
     if (!current || rank(scene, candidate, current) < 0) bestByStem.set(stem, candidate);
   }
   const distinct = [...bestByStem.values()];
-  if (distinct.length > 1 && new Set(distinct.map(uploader)).size > 1) return null;
+  const uploaders = distinct.map(uploader);
+  if (distinct.length > 1 && (uploaders.some((value) => value === null) || new Set(uploaders).size > 1)) return null;
   return distinct.sort((left, right) => rank(scene, left, right))[0];
 }

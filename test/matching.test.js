@@ -28,6 +28,8 @@ test("trusted pools allow first names but enforce MMDD and the duration gate", (
   assert.equal(pickMatch(maya, [candidate({ title: "MAYA923", duration: 2555 })], { trustedPool: true }), null);
   const cherry = scene({ performers: ["Cherry Kiss"], durationSec: 3102, releaseDate: "2026-09-25" });
   assert.equal(pickMatch(cherry, [candidate({ title: "LLW - LanaWills 924", duration: 3100 })], { trustedPool: true }), null);
+  const lana = scene({ performers: ["Lana Wills"], durationSec: 3100, releaseDate: "2026-09-24" });
+  assert.ok(pickMatch(lana, [candidate({ title: "LLW - LanaWills 924", duration: 3100 })], { trustedPool: true }));
 });
 
 test("repost decorations dedupe, while conflicting identities from different uploaders reject", () => {
@@ -36,4 +38,5 @@ test("repost decorations dedupe, while conflicting identities from different upl
   assert.equal(pickMatch(scene(), [candidate(), duplicate]), duplicate);
   const conflict = candidate({ title: "Geishakyd unrelated upload", uploader: "two", url: "https://tube/two" });
   assert.equal(pickMatch(scene(), [candidate(), conflict]), null);
+  assert.equal(pickMatch(scene(), [candidate({ uploader: undefined }), conflict]), null);
 });
