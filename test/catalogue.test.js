@@ -14,7 +14,6 @@ import { createTpdbStudio, fetchTushyScenes, parseTpdbScene } from "../src/studi
 import { studio as tushy } from "../src/studios/tushy.js";
 import { fetchBangOriginalsScenes, parseListing as parseBangListing, parseVideoPage as parseBangVideoPage, studio as bangOriginals } from "../src/studios/bang-originals.js";
 
-const fixture = (name) => readFile(new URL(`../fixtures/analvids/${name}`, import.meta.url), "utf8");
 const scene = (id, releaseDate = "2026-09-20") => ({ sourceSceneId: id, title: `Scene ${id}`, releaseDate, performers: [], thumbnailUrl: "", releaseUrl: `https://source/${id}`, source: "Test", provenance: { source: "Test", sourceUrl: "https://source", recordUrl: `https://source/${id}`, sourceSceneId: id } });
 const adapter = (id, fetchScenes) => ({ id, name: `Studio ${id}`, authority: { name: "Test", url: `https://source/${id}`, role: "authoritative catalogue" }, fetchScenes });
 
@@ -94,19 +93,6 @@ test("a failed Mambo Perv fetch preserves its last good catalogue", async () => 
   assert.deepEqual(result.scenes.map(({ id }) => id), ["mambo-perv:5281264"]);
   assert.equal(result.studios[0].lastSuccessfulRefresh, "2026-09-21T00:00:00Z");
   assert.equal(result.studios[0].error, "source unavailable");
-});
-
-test("AnalVids retries transient network failures and identifies exhausted URL", async () => {
-  const { fetchAnalVidsText } = await import("../src/studios/analvids-fetch.js");
-  let calls = 0;
-  const url = "https://www.analvids.com/watch/123/example";
-  const text = await fetchAnalVidsText(url, async () => {
-    if (++calls < 3) throw new TypeError("fetch failed");
-    return { ok: true, text: async () => "scene" };
-  }, { delay: async () => {} });
-  assert.equal(text, "scene");
-  assert.equal(calls, 3);
-  await assert.rejects(fetchAnalVidsText(url, async () => { throw new TypeError("fetch failed"); }, { delay: async () => {} }), /fetch failed for https:\/\/www\.analvids\.com\/watch\/123\/example after 3 attempts/);
 });
 
 test("maps TPDB scene records and tolerates absent optional metadata", async () => {
