@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readStore } from "./store.js";
 import { sync } from "./sync.js";
 import { enrichStoredCatalogue, validSxyprnUrl } from "./sxyprn.js";
+import { createEpornerLookup } from "./eporner.js";
 import { createVideoProxy } from "./video-proxy.js";
 import sxyprn from "sxyprn";
 
@@ -58,7 +59,7 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
         const id = url.searchParams.get("scene");
         const catalogue = await readStore(cataloguePath);
         const scene = catalogue.scenes?.find((item) => item.id === id);
-        const postUrl = scene?.sxyprnUrls?.find(validSxyprnUrl);
+        const postUrl = scene?.videoUrls?.find((link) => link.source === "sxyprn" && validSxyprnUrl(link.url))?.url;
         if (!postUrl) {
           response.writeHead(404, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
           return response.end(JSON.stringify({ error: "Video unavailable" }));
@@ -94,7 +95,8 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
 
 export const server = createLisztServer({ enrichCatalogue: (options) => enrichStoredCatalogue(dataPath, {
   ...options,
-  onProgress: (scene) => console.log(`Sxyprn checked ${scene.id}: ${scene.sxyprnUrls?.length || 0} link(s)`),
+  fallbackLookup: createEpornerLookup(),
+  onProgress: (scene) => console.log(`Playback sources checked ${scene.id}: ${scene.videoUrls?.length || 0} link(s)`),
 }) });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

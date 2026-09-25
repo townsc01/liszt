@@ -1,5 +1,5 @@
 import { renderSceneLinks } from "./scene-links.js";
-import { topSxyprnUrl } from "./scene-video.js";
+import { topVideoLink } from "./scene-video.js";
 
 const list = document.querySelector("#list");
 const empty = document.querySelector("#empty");
@@ -38,7 +38,7 @@ function render() {
     const date = parseDate(scene.releaseDate);
     const initials = scene.title.split(/\s+/).slice(0, 2).map((word) => word[0]).join("");
     const image = scene.thumbnailUrl ? `<img src="${escapeHtml(scene.thumbnailUrl)}" alt="">` : escapeHtml(initials);
-    const thumbnail = topSxyprnUrl(scene)
+    const thumbnail = topVideoLink(scene)
       ? `<a class="thumb thumb--playable" href="/watch.html?scene=${encodeURIComponent(scene.id)}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${escapeHtml(scene.title)} in a new tab">${image}<span class="thumb-play" aria-hidden="true">▶</span></a>`
       : `<div class="thumb">${image}</div>`;
     return `<article class="row" style="animation-delay:${index * 45}ms"><time class="date" datetime="${scene.releaseDate}"><strong>${date.getUTCDate().toString().padStart(2, "0")}</strong><span>${date.toLocaleDateString("en", { weekday: "short", timeZone: "UTC" })}</span></time>${thumbnail}<div class="details"><h3>${escapeHtml(scene.title)}</h3><p>${escapeHtml(scene.studio)}</p></div><div class="performers">${scene.performers.map(escapeHtml).join(" · ") || "Performers unlisted"}</div>${renderSceneLinks(scene)}</article>`;
@@ -103,7 +103,7 @@ function applyCatalogue(data) {
   const desiredStudio = selectedStudio !== "all" ? selectedStudio : requestedStudio;
   if ([...studio.options].some((option) => option.value === desiredStudio)) studio.value = desiredStudio;
   notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("") +
-    (data.enrichmentPending ? '<div class="notice">Checking Sxyprn for matching videos. New links will appear here as they are verified.</div>' : "");
+    (data.enrichmentPending ? '<div class="notice">Checking playback sources for matching videos. New links will appear here as they are verified.</div>' : "");
   lastChecked.textContent = data.lastChecked ? new Date(data.lastChecked).toLocaleString("en", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Not yet checked";
   renderSources();
   render();

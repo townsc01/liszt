@@ -1,4 +1,4 @@
-import { topSxyprnUrl } from "./scene-video.js";
+import { topVideoLink } from "./scene-video.js";
 
 const content = document.querySelector("#watch-content");
 
@@ -21,7 +21,7 @@ function safeExternalUrl(value) {
   }
 }
 
-async function showScene(scene, sourceUrl) {
+async function showScene(scene, videoLink) {
   content.replaceChildren();
   const eyebrow = document.createElement("p");
   eyebrow.className = "eyebrow";
@@ -48,10 +48,10 @@ async function showScene(scene, sourceUrl) {
   const links = document.createElement("div");
   links.className = "watch-links";
   const sxyprn = document.createElement("a");
-  sxyprn.href = sourceUrl;
+  sxyprn.href = videoLink.url;
   sxyprn.target = "_blank";
   sxyprn.rel = "noopener noreferrer";
-  sxyprn.textContent = "Open on Sxyprn ↗";
+  sxyprn.textContent = `Open on ${videoLink.source === "eporner" ? "Eporner" : "Sxyprn"} ↗`;
   links.append(sxyprn);
   const source = safeExternalUrl(scene.releaseUrl);
   if (source) {
@@ -65,6 +65,14 @@ async function showScene(scene, sourceUrl) {
   content.append(eyebrow, heading, metadata, player, links);
   document.title = `${scene.title} · Liszt`;
   try {
+    if (videoLink.source === "eporner") {
+      const iframe = document.createElement("iframe");
+      iframe.src = videoLink.embedUrl;
+      iframe.allowFullscreen = true;
+      iframe.setAttribute("aria-label", `Video player for ${scene.title}`);
+      player.replaceChildren(iframe);
+      return;
+    }
     const videoUrl = `/api/video?scene=${encodeURIComponent(scene.id)}`;
     const response = await fetch(`/api/video/resolve?scene=${encodeURIComponent(scene.id)}`, { cache: "no-store" });
     if (!response.ok) throw new Error("Video unavailable");
@@ -93,8 +101,8 @@ try {
   if (!response.ok) throw new Error("Catalogue unavailable");
   const catalogue = await response.json();
   const scene = Array.isArray(catalogue.scenes) ? catalogue.scenes.find((item) => item.id === id) : null;
-  const sourceUrl = topSxyprnUrl(scene);
-  if (scene && sourceUrl) await showScene(scene, sourceUrl);
+  const videoLink = topVideoLink(scene);
+  if (scene && videoLink) await showScene(scene, videoLink);
   else showUnavailable();
 } catch {
   showUnavailable();

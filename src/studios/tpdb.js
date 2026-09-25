@@ -72,6 +72,7 @@ export function parseTpdbScene(record, performerGenders = new Map(), sourceUrl =
     sourceSceneId: String(sourceSceneId),
     title: record.title.trim(),
     releaseDate: record.date,
+    durationSec: Number.isFinite(Number(record.duration)) && Number(record.duration) > 0 ? Number(record.duration) : null,
     performers: [...new Set(performers)],
     thumbnailUrl: record.image || record.poster_image || record.poster || "",
     releaseUrl,

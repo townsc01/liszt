@@ -97,7 +97,7 @@ test("video endpoint warms and caches a stream, then proxies range requests", as
   let calls = 0;
   const upstreamRanges = [];
   try {
-    await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", sxyprnUrls: [postUrl] }] }));
+    await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", videoUrls: [{ source: "sxyprn", url: postUrl, embedUrl: null, verifiedAt: "2026-09-25T00:00:00.000Z" }] }] }));
     await withServer({
       cataloguePath: path,
       videoDetails: async ({ url }) => { calls++; assert.equal(url, postUrl); return { url, streamUrl: "https://sxyprn.com/cdn8/fresh-token" }; },
@@ -130,7 +130,7 @@ test("video endpoint rejects an off-site stream returned by the extractor", asyn
   const path = join(directory, "catalogue.json");
   const postUrl = "https://sxyprn.com/post/6ab5422fa84b6.html";
   try {
-    await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", sxyprnUrls: [postUrl] }] }));
+    await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", videoUrls: [{ source: "sxyprn", url: postUrl, embedUrl: null, verifiedAt: "2026-09-25T00:00:00.000Z" }] }] }));
     await withServer({ cataloguePath: path, videoDetails: async ({ url }) => ({ url, streamUrl: "https://evil.example/video.mp4" }) }, async (origin) => {
       const response = await fetch(`${origin}/api/video?scene=studio%3A1`);
       assert.equal(response.status, 502);

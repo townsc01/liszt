@@ -83,13 +83,16 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
     const titleQuery = titleWords(scene.title).filter((word) => !performerWords.has(word)).slice(0, 5).join(" ");
     const queries = [...names, titleQuery, code].filter(Boolean);
     const candidates = new Map();
+    const allCandidates = new Map();
     let successfulSearches = 0;
     for (const query of queries) {
       try {
         const page = await search(query);
         successfulSearches++;
         for (const item of page.videos || []) {
-          if (!validSxyprnUrl(item.url) || !hasSceneEvidence(scene, item.title, code)) continue;
+          if (!validSxyprnUrl(item.url)) continue;
+          allCandidates.set(item.url, item);
+          if (!hasSceneEvidence(scene, item.title, code)) continue;
           const score = titleScore(scene.title, item.title);
           if (score >= 0.75) candidates.set(item.url, { item, score });
         }
@@ -99,15 +102,25 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
       }
     }
     if (!successfulSearches) throw new Error("Sxyprn search unavailable");
-    const ranked = [...candidates.values()].sort((a, b) => b.score - a.score || Number(a.item.isExternal) - Number(b.item.isExternal));
+    if (!candidates.size && Number.isFinite(scene.durationSec)) {
+      for (const item of allCandidates.values()) {
+        const exactTitle = words(item.title).join(" ").includes(words(scene.title).join(" "));
+        if (Math.abs(Number(item.durationSeconds) - scene.durationSec) <= 2 && (hasPerformer(scene, item.title) || exactTitle)) {
+          candidates.set(item.url, { item, score: exactTitle ? 1 : 0 });
+        }
+      }
+    }
+    const ranked = [...candidates.values()].sort((a, b) => b.score - a.score || Number(a.item.isExternal) - Number(b.item.isExternal) || Number(b.item.views || 0) - Number(a.item.views || 0));
     const verified = [];
     let successfulDetails = 0;
     for (const { item } of ranked.slice(0, 3)) {
       try {
         const detail = await details(item.url);
         successfulDetails++;
+        const durationMatch = Number.isFinite(scene.durationSec) && Math.abs(Number(item.durationSeconds) - scene.durationSec) <= 2 &&
+          (hasPerformer(scene, detail.title) || words(detail.title).join(" ").includes(words(scene.title).join(" ")));
         if (validSxyprnUrl(detail.url) && detail.url === item.url && detail.streamUrl &&
-            hasSceneEvidence(scene, detail.title, code) && titleScore(scene.title, detail.title) >= 0.75) {
+            (hasSceneEvidence(scene, detail.title, code) || durationMatch) && (titleScore(scene.title, detail.title) >= 0.75 || durationMatch)) {
           verified.push({ url: detail.url, score: titleScore(scene.title, detail.title), isExternal: detail.isExternal });
           if (verified.length >= maxMatches) break;
         }
@@ -121,9 +134,9 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
   };
 }
 
-function withoutEporner(scene) {
-  const { epornerUrls, epornerUrl, epornerCheckedAt, ...rest } = scene;
-  return rest;
+function legacyLinks(scene) {
+  const verifiedAt = scene.sxyprnCheckedAt || new Date(0).toISOString();
+  return (scene.sxyprnUrls || []).filter(validSxyprnUrl).map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt }));
 }
 
 function unchanged(scene, prior) {
@@ -139,25 +152,28 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
   const cutoff = new Date(now.getTime() - days * DAY_MS).toISOString().slice(0, 10);
   const output = [];
   for (const input of scenes) {
-    const { sxyprnUrls, sxyprnCheckedAt, ...scene } = withoutEporner(input);
+    const { sxyprnUrls, sxyprnCheckedAt, epornerUrls, epornerUrl, epornerCheckedAt, ...scene } = input;
     const override = sxyprnOverrides.get(scene.id);
     if (override) {
-      output.push({ ...scene, sxyprnUrls: override.filter(validSxyprnUrl) });
+      output.push({ ...scene, videoUrls: override.filter(validSxyprnUrl).map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt: now.toISOString() })) });
       continue;
     }
     const prior = byId.get(scene.id) || byReleaseUrl.get(scene.releaseUrl);
     const same = unchanged(scene, prior);
-    const priorUrls = same ? (prior.sxyprnUrls || []).filter(validSxyprnUrl) : [];
-    const checkedAt = same ? Date.parse(prior.sxyprnCheckedAt) : NaN;
-    const retained = { ...scene, ...(priorUrls.length ? { sxyprnUrls: priorUrls } : {}),
-      ...(Number.isFinite(checkedAt) ? { sxyprnCheckedAt: prior.sxyprnCheckedAt } : {}) };
+    const priorLinks = same ? ([...(prior.videoUrls || []), ...legacyLinks(prior)]).filter((link, index, links) =>
+      ((link.source === "sxyprn" && validSxyprnUrl(link.url)) || link.source === "eporner") && links.findIndex((item) => item.source === link.source && item.url === link.url) === index) : [];
+    const checkedAt = same ? Date.parse(prior.videoCheckedAt || prior.sxyprnCheckedAt) : NaN;
+    const retained = { ...scene, ...(priorLinks.length ? { videoUrls: priorLinks } : {}),
+      ...(Number.isFinite(checkedAt) ? { videoCheckedAt: prior.videoCheckedAt || prior.sxyprnCheckedAt } : {}) };
     if (!lookup || scene.releaseDate < cutoff || (Number.isFinite(checkedAt) && now.getTime() >= checkedAt && now.getTime() - checkedAt < DAY_MS)) {
       output.push(retained);
       continue;
     }
     try {
       const urls = [...new Set(await lookup(scene))].filter(validSxyprnUrl).slice(0, 2);
-      output.push({ ...scene, ...(urls.length ? { sxyprnUrls: urls } : priorUrls.length ? { sxyprnUrls: priorUrls } : {}), sxyprnCheckedAt: now.toISOString() });
+      const otherLinks = priorLinks.filter((link) => link.source !== "sxyprn");
+      const links = urls.length ? [...urls.map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt: now.toISOString() })), ...otherLinks] : priorLinks;
+      output.push({ ...scene, ...(links.length ? { videoUrls: links } : {}), videoCheckedAt: now.toISOString() });
     } catch {
       output.push(retained);
     }
@@ -165,13 +181,25 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
   return output;
 }
 
-export async function enrichStoredCatalogue(path, { lookup = createSxyprnLookup(), days = 14, shouldContinue = () => true, onProgress = () => {} } = {}) {
+export async function enrichStoredCatalogue(path, { lookup = createSxyprnLookup(), fallbackLookup, days = 14, shouldContinue = () => true, onProgress = () => {} } = {}) {
   const catalogue = await readStore(path);
   let changed = false;
   for (let index = 0; index < (catalogue.scenes || []).length; index++) {
     if (!shouldContinue()) break;
     const scene = catalogue.scenes[index];
-    const [updated] = await enrichSxyprnLinks([scene], [scene], lookup, { days });
+    let [updated] = await enrichSxyprnLinks([scene], [scene], lookup, { days });
+    if (fallbackLookup && !updated.videoUrls?.some((link) => link.source === "sxyprn") && Number.isFinite(updated.durationSec)) {
+      try {
+        const match = await fallbackLookup(updated);
+        if (match) {
+          const links = (updated.videoUrls || []).filter((link) => link.source !== "eporner");
+          links.push({ source: "eporner", url: match.url, embedUrl: match.embed, verifiedAt: new Date().toISOString() });
+          updated = { ...updated, videoUrls: links };
+        }
+      } catch {
+        // Keep the last-good links when the fallback source is unavailable.
+      }
+    }
     if (JSON.stringify(updated) === JSON.stringify(scene) || !shouldContinue()) continue;
     catalogue.scenes[index] = updated;
     changed = true;
