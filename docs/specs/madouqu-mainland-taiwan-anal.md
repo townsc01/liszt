@@ -1,9 +1,10 @@
 # Lane spec: Taiwan/mainland releases (male-on-female anal) via madouqu.com
 
-> **Status: implementation spec for Codex, not working code.** Written 2026-09-25 from the
-> full-site recon (2026-09-23) and the filtered catalogue run (2026-09-24). Chris reviews this
-> document; Codex implements from it. Nothing in this branch changes production behaviour - the
-> only runnable artefacts are seed data and fixtures.
+> **Status: FINAL spec, 2026-09-26.** Scope: metadata/catalogue lane only - no playback
+> links, no video embeds (see section 6; the playback-source question is a separate later
+> decision). Written 2026-09-25 from the full-site recon (2026-09-23), the filtered catalogue
+> run (2026-09-24), and the tube-findability measurement (2026-09-25). Codex implements from
+> this document.
 
 ## 1. Goal
 
@@ -164,11 +165,16 @@ only the language and dictionaries differ.
   and its posts were attributed by the run through slug/title analysis - Codex should verify the
   category mapping live and log any label it cannot map instead of guessing.
 
-## 6. Video links: acknowledged gap - no source yet
+## 6. Playback: OUT OF SCOPE for this lane (measured 2026-09-25)
 
-**There is no known playback source for this lane, and the PR must say so plainly.** Unlike the
-western studios (Sxyprn) and FC2 (PPV-code search), mainland/Taiwan label releases are not
-indexed by Sxyprn/Eporner in any matchable way.
+**No playback links and no video embeds ship in this lane. Catalogue metadata only.** The
+findability measurement settled it: 20 recent releases across 5 labels (xb, tx, m, xkty, pm)
+were searched on both tubes - release codes, romanised label names (xingba, tangxin), and
+Chinese names (麻豆/杏吧/糖心). Result: **0/20 on eporner, 0/20 on sxyprn**. The only hits were
+stale generic noise (179 old PMV uploads under "madou", 7 under "jvid", none label releases).
+Neither tube carries these labels in any matchable way, so there is nothing to link or embed.
+Adding a playback source (a Chinese-content tube, the labels' own sites, JVID) is a separate
+later PR after Chris picks a direction; the lane ships without one.
 
 The one lead worth a follow-up issue (not this PR): `content.rendered` and `excerpt.rendered`
 sometimes carry "下载地址：Magnet" with an actual `magnet:` URI in the post body. If Chris wants,
@@ -222,11 +228,18 @@ Tests to write:
   the seed.
 - End-to-end: backfill against recorded responses reproduces the 151-row cut.
 
-## 10. Open questions for Chris
+## 10. Rulings and remaining questions
 
-1. **Window:** whole-history lane or rolling 90 days (same `windowDays` decision as FC2)?
-2. **Magnets:** worth the follow-up branch that extracts `magnet:` links from post content as
-   acquisition references for the download stack?
-3. **Incest-roleplay titles** (母女/姐妹-style genre titles): filter them too, or leave in?
-4. **Performer names:** parse 麻豆女郎-style names out of excerpts when present, or leave
-   performers empty for this lane?
+DECIDED (all Chris, 2026-09-25, applied in the sections above):
+
+1. **Window:** 90 days (`windowDays` default, no exception).
+2. **Performers:** ship empty; excerpt parsing is a separate later PR.
+3. **Label naming:** ad-hoc cheap LLM translation, cached; the section-5 table is a warm start.
+4. **Studios:** per-label studios, not a generic flattened label.
+
+Still open (does not block implementation):
+
+1. **Magnets:** worth the follow-up branch that extracts `magnet:` links from post content as
+   acquisition references for the download stack? Deferred to a later PR either way.
+2. **Incest-roleplay titles** (母女/姐妹-style genre titles): default is NOT filtered (current
+   behaviour); Chris can rule later and the lexicon updates without re-architecture.
