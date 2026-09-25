@@ -84,7 +84,7 @@ export function parseIsoDuration(value) {
 }
 
 function cleanText(value) {
-  return String(value || "").replace(/&/gi, "&").replace(/&#(?:39|x27);/gi, "'").replace(/"/gi, '"').trim();
+  return String(value || "").replace(/&amp;/gi, "&").replace(/&#(?:39|x27);/gi, "'").replace(/&quot;/gi, '"').trim();
 }
 
 function names(value) {
