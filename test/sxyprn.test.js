@@ -179,3 +179,35 @@ test("studio sync remains available when Sxyprn is not available", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+
+test("stored catalogue bounds concurrent playback-source checks", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "liszt-sxyprn-concurrency-"));
+  const path = join(directory, "catalogue.json");
+  let active = 0;
+  let peak = 0;
+  const scenes = Array.from({ length: 8 }, (_, index) => ({
+    ...scene,
+    id: `studio:${index}`,
+    sourceSceneId: String(index),
+    releaseUrl: `https://source.example/${index}`,
+  }));
+  try {
+    await writeFile(path, JSON.stringify({ scenes, studios: [] }));
+    await enrichStoredCatalogue(path, {
+      concurrency: 2,
+      lookup: async () => {
+        active++;
+        peak = Math.max(peak, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active--;
+        return [url];
+      },
+    });
+    assert.equal(peak, 2);
+    const stored = JSON.parse(await readFile(path, "utf8"));
+    assert.equal(stored.scenes.filter((item) => item.videoUrls?.length).length, 8);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
