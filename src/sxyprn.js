@@ -1,6 +1,7 @@
 import sxyprn from "sxyprn";
 import { readStore, writeStore } from "./store.js";
 import { sxyprnOverrides } from "./sxyprn-overrides.js";
+import { enrichFromStudioSite } from "./studio-site.js";
 
 const DAY_MS = 86_400_000;
 const COMMON = new Set(["a", "an", "and", "at", "by", "for", "in", "into", "of", "on", "the", "to", "with"]);
@@ -81,7 +82,8 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
     if (!names.length && !code) return [];
     const performerWords = new Set(names.flatMap(words));
     const titleQuery = titleWords(scene.title).filter((word) => !performerWords.has(word)).slice(0, 5).join(" ");
-    const queries = [...names, titleQuery, code].filter(Boolean);
+    const studioQuery = scene.creatorStudio ? null : scene.studio;
+    const queries = [...names, titleQuery, code, studioQuery].filter(Boolean);
     const candidates = new Map();
     const allCandidates = new Map();
     let successfulSearches = 0;
@@ -146,7 +148,11 @@ function unchanged(scene, prior) {
       : scene.releaseUrl === prior.releaseUrl && scene.studioId === prior.studioId && titleScore(scene.title, prior.title) >= 0.8);
 }
 
-export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = new Date(), days = 14 } = {}) {
+function namingVersion(scene) {
+  return JSON.stringify(scene.performers || []);
+}
+
+export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = new Date(), days = 14, fetchImpl = fetch, scrape = enrichFromStudioSite } = {}) {
   const byId = new Map(previousScenes.map((scene) => [scene.id, scene]));
   const byReleaseUrl = new Map(previousScenes.filter((scene) => scene.releaseUrl).map((scene) => [scene.releaseUrl, scene]));
   const cutoff = new Date(now.getTime() - days * DAY_MS).toISOString().slice(0, 10);
@@ -172,8 +178,15 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
     try {
       const urls = [...new Set(await lookup(scene))].filter(validSxyprnUrl).slice(0, 2);
       const otherLinks = priorLinks.filter((link) => link.source !== "sxyprn");
+      let working = scene;
+      let scraped = false;
+      if (!urls.length && scene.releaseUrl && scene.studioSiteNamingVersion !== namingVersion(scene)) {
+        working = await scrape(scene, { fetchImpl, refreshExisting: true });
+        scraped = true;
+      }
       const links = urls.length ? [...urls.map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt: now.toISOString() })), ...otherLinks] : priorLinks;
-      output.push({ ...scene, ...(links.length ? { videoUrls: links } : {}), videoCheckedAt: now.toISOString() });
+      output.push({ ...working, ...(links.length ? { videoUrls: links } : {}), videoCheckedAt: now.toISOString(),
+        ...(scraped ? { studioSiteNamingVersion: namingVersion(working) } : {}) });
     } catch {
       output.push(retained);
     }
