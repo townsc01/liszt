@@ -1,4 +1,5 @@
 import { enrichFromStudioSite, metadataIncomplete, parseIsoDuration } from "../studio-site.js";
+import { concurrencyLimit, mapWithConcurrency } from "../concurrency.js";
 
 const API_BASE_URL = "https://api.theporndb.net";
 const SITES_URL = `${API_BASE_URL}/sites`;
@@ -199,7 +200,7 @@ async function fetchPage(page, fetchImpl, apiKey, siteId, cutoff, { requireFemal
   return requestJson(url, fetchImpl, apiKey);
 }
 
-export async function fetchTpdbScenes({ now = new Date(), days = 90, fetchImpl = fetch, apiKey = process.env.TPDB_API_KEY, siteName, siteId: configuredSiteId, sourceUrl = DEFAULT_SOURCE_URL, requireFemalePerformer = false } = {}) {
+export async function fetchTpdbScenes({ now = new Date(), days = 90, fetchImpl = fetch, apiKey = process.env.TPDB_API_KEY, siteName, siteId: configuredSiteId, sourceUrl = DEFAULT_SOURCE_URL, requireFemalePerformer = false, enrichStudioSite = enrichFromStudioSite, studioSiteConcurrency = concurrencyLimit(process.env.LISZT_INGEST_CONCURRENCY, 4) } = {}) {
   if (!apiKey) throw new Error("TPDB_API_KEY is not configured");
   if (!configuredSiteId && !siteName) throw new Error("TPDB siteName or siteId is required");
   const site = configuredSiteId ? { id: configuredSiteId } : await findTpdbSite(siteName, fetchImpl, apiKey);
@@ -211,9 +212,9 @@ export async function fetchTpdbScenes({ now = new Date(), days = 90, fetchImpl =
     if (batch.length < PER_PAGE) {
       const performerGenders = await resolvePerformerGenders(records, fetchImpl, apiKey);
       const parsed = records.map((record) => parseTpdbScene(record, performerGenders, sourceUrl, { requireFemalePerformer })).filter(Boolean);
-      const scenes = await Promise.all(parsed.map((scene) => metadataIncomplete(scene) && !scene.releaseUrl.startsWith(`${API_BASE_URL}/`)
-        ? enrichFromStudioSite(scene, { fetchImpl })
-        : scene));
+      const scenes = await mapWithConcurrency(parsed, studioSiteConcurrency, (scene) => metadataIncomplete(scene) && !scene.releaseUrl.startsWith(`${API_BASE_URL}/`)
+        ? enrichStudioSite(scene, { fetchImpl })
+        : scene);
       return { scenes, verifiedEmpty: scenes.length === 0 };
     }
   }
