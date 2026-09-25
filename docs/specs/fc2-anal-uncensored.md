@@ -1,6 +1,6 @@
 # Lane spec: FC2 (anal, uncensored) via fc2cmadb.com
 
-> **Depends on:** link-sources (implemented - incl. its per-lane matcher contract), matching-algorithm (in progress). **Status:** spec'd.
+> **Depends on:** link-sources, matching-algorithm.
 
 > **Status: implementation spec for Codex, not working code.** Written 2026-09-25 from a
 > full live crawl completed 2026-09-24. Chris reviews this document; Codex implements from it.

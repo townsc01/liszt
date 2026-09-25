@@ -3,7 +3,7 @@
 How to work on Liszt. Read this before writing any code.
 
 1. **Branch from latest main, always.** Never branch from a spec branch or a stale checkout.
-2. **Read first:** this file, the README spec index (specs are implemented in the order listed there), and the full spec you are implementing (`docs/specs/`).
+2. **Read first:** this file, the repo milestones (build order and live status - `/repos/townsc01/liszt/milestones` via API, or ROADMAP.md for the linked map), and the full spec you are implementing (`docs/specs/`).
 3. **Respect each spec's "Depends on" header.** If a dependency is not implemented on main, stop and say so - do not stub around it.
 4. **DECIDED items are final.** Measured numbers in specs (corpus matrices, precision results) are ground truth, not suggestions. Do not relitigate them.
 5. **One spec per task.** Implement what the spec says, nothing more. No scope expansion.

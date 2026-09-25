@@ -1,22 +1,14 @@
 # Liszt
 
-**[ROADMAP.md](ROADMAP.md)** - phases, spec build order, and what each unlocks.
+**[Roadmap](https://github.com/townsc01/liszt/milestones)** (milestones - status + build order) - **[ROADMAP.md](ROADMAP.md)** (the map, linked).
 
 Liszt is a personal hobby project for keeping a rolling 90-day watchlist of scenes released by selected studios. The aim is a useful, reasonably complete, accurate, regularly updated list showing each scene's studio, title, release date, performers, thumbnail, and link to its release page.
 
 ## Specs
 
-Feature specs live in `docs/specs/` and must be implemented in this order (each entry names its prerequisites in its header):
+Feature specs live in `docs/specs/`; each names its prerequisites in its `Depends on` header. **Build order and status live in [GitHub milestones](https://github.com/townsc01/liszt/milestones)** (API-readable: `/repos/townsc01/liszt/milestones`) - not in this file.
 
-| # | Spec | Depends on | Status |
-|---|---|---|---|
-| 1 | [Playback link sources](docs/specs/link-sources.md) | none | implemented |
-| 2 | [Studio-site metadata scraper](docs/specs/studio-site-scraper.md) | none | implemented |
-| 3 | [Matching algorithm](docs/specs/matching-algorithm.md) | 1, 2 | in progress |
-| 4 | [Sxyprn embed](docs/specs/sxyprn-embed.md) | 1 | spec'd |
-| 5 | [Eporner embed](docs/specs/eporner-embed.md) | 1 | spec'd |
-| 6 | [FC2 lane](docs/specs/fc2-anal-uncensored.md) | 1, 3 | spec'd |
-| 7 | [Madouqu lane (metadata-only)](docs/specs/madouqu-mainland-taiwan-anal.md) | none | spec'd |
+[Playback link sources](docs/specs/link-sources.md) - [Studio-site metadata scraper](docs/specs/studio-site-scraper.md) - [Matching algorithm](docs/specs/matching-algorithm.md) - [Sxyprn embed](docs/specs/sxyprn-embed.md) - [Eporner embed](docs/specs/eporner-embed.md) - [FC2 lane](docs/specs/fc2-anal-uncensored.md) - [Madouqu lane (metadata-only)](docs/specs/madouqu-mainland-taiwan-anal.md)
 
 ## Sources and adapters
 
