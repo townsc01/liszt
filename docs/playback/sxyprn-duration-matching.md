@@ -34,6 +34,10 @@ Pipeline: queries = up to 2 normalised performer names + mambo scene code (same 
 - Retitled re-uploads exist: "Gorgeous Suraya Loves Anal" (2490s) surfaced two "Suraya Ndia Spicy Wet Black Pussy..." posts (2489/2491s) alongside the title-bearing "Tushy Suraya Ndia - Gorgeous Suraya Loves Anal" (2490s). Same-scene dupes; the title-bearing candidate must win.
 - External-link posts (`isExternal`, e.g. lulustream/vidara wrappers) appear among candidates; keep the existing deprioritisation.
 
+### 2a. Thumbnail stage-3, tested and falsified (source-agnostic)
+
+Chris's proposed stage 3 - colour-similarity between the TPDB still and candidate thumbs inside the duration-narrowed set - was measured on both tubes and separates nothing. Sxyprn card thumbs (video frames) on 3 verified true pairs: 2 of 3 are FURTHER from the TPDB still than the best random-control thumb on both colour metrics (Bhattacharyya histogram 0.596 vs 0.441 and 0.534 vs 0.472; average-colour 58.9 vs 6.5 and 112.8 vs 17.9). Eporner frames show the same (see the eporner spec 2c: hist true-mean 0.459 vs control 0.473; avg-colour control closer). Palette homogeneity (skin tones) defeats colour comparison regardless of which tube the frame comes from. No stage 3 is added; the duration + performer gate is the whole matcher. (2 of the 5 sxyprn test pairs could not be downloaded for measurement - the Mambo/Lancelot TPDB thumbs sit on a CDN that 403s datacenter IPs; the 3 measured pairs are unambiguous.)
+
 ## 3. Design
 
 After the current title-score pass fails for a scene, a second pass over the same search results (already fetched and cached - no new sxyprn traffic for scenes the first pass searched):
