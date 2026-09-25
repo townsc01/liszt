@@ -45,3 +45,18 @@ test("repost decorations dedupe, while conflicting identities from different upl
   const conflict = candidate({ title: "Geishakyd unrelated upload", uploader: "two", url: "https://tube/two" });
   assert.equal(pickMatch(scene(), [candidate(), conflict]), null);
 });
+
+test("structured Sxyprn authors preserve cross-uploader disagreement", () => {
+  const first = candidate({ uploader: undefined, author: { id: "blog-one", name: "One" } });
+  const second = candidate({ uploader: undefined, author: { id: "blog-two", name: "Two" },
+    title: "Geishakyd unrelated upload", url: "https://tube/two" });
+  assert.equal(pickMatch(scene(), [first, second]), null);
+});
+
+test("compact repost dates do not create a second title identity", () => {
+  assert.equal(titleStem("Tushy 26 09 06 Maddie Wren Perfect Hottie Wants Anal"),
+    titleStem("Tushy Maddie Wren Perfect Hottie Wants Anal"));
+  const current = scene({ performers: ["Maddie Wren"], title: "Perfect Hottie Wants Anal" });
+  assert.ok(pickMatch(current, [candidate({ title: "Tushy 26 09 06 Maddie Wren Perfect Hottie Wants Anal", uploader: "one" }),
+    candidate({ title: "Tushy Maddie Wren Perfect Hottie Wants Anal", uploader: "two", url: "https://tube/two" })]));
+});

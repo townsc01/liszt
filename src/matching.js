@@ -58,12 +58,14 @@ export function titleStem(value) {
   const withoutUrls = String(value || "").replace(/https?:\/\/\S+/gi, " ")
     .replace(/\{(?:new|watch\/?download:)[^}]*\}/gi, " ")
     .replace(/(?:\s+#[\p{L}\p{N}_-]+)+\s*$/u, " ")
-    .replace(/\b(?:19|20)\d{2}[-/.]\d{1,2}[-/.]\d{1,2}\b/g, " ");
+    .replace(/\b(?:19|20)\d{2}[-/. ]\d{1,2}[-/. ]\d{1,2}\b/g, " ")
+    .replace(/\b\d{2}[-/. ](?:0?[1-9]|1[0-2])[-/. ](?:0?[1-9]|[12]\d|3[01])\b/g, " ");
   return matchTokens(withoutUrls).filter((token) => !DECORATION_WORDS.has(token)).join(" ");
 }
 
 function uploader(candidate) {
-  return String(candidate.uploader || candidate.user || candidate.author || candidate.username || "").toLowerCase();
+  const identity = candidate.uploader || candidate.user || candidate.author || candidate.username;
+  return String(typeof identity === "object" && identity !== null ? identity.id || identity.name || identity.url || "" : identity || "").toLowerCase();
 }
 
 function rank(scene, left, right) {

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readStore } from "./store.js";
 import { sync } from "./sync.js";
 import { enrichStoredCatalogue, validSxyprnUrl } from "./sxyprn.js";
-import { createEpornerLookup } from "./eporner.js";
+import { createEpornerLookup, createEpornerTrustedPoolLoader } from "./eporner.js";
 import { createVideoProxy } from "./video-proxy.js";
 import sxyprn from "sxyprn";
 
@@ -95,7 +95,7 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
 
 export const server = createLisztServer({ enrichCatalogue: (options) => enrichStoredCatalogue(dataPath, {
   ...options,
-  fallbackLookup: createEpornerLookup(),
+  fallbackLookup: createEpornerLookup({ trustedPoolLoader: createEpornerTrustedPoolLoader() }),
   onProgress: (scene) => console.log(`Playback sources checked ${scene.id}: ${scene.videoUrls?.length || 0} link(s)`),
 }) });
 

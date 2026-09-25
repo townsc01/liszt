@@ -3,6 +3,55 @@ import { trustedEpornerUploaders } from "./trusted-uploaders.js";
 import { configuredSceneCode } from "./matching-config.js";
 
 const API_URL = "https://www.eporner.com/api/v2/video/search/";
+const VIDEO_URL = "https://www.eporner.com/api/v2/video/id/";
+
+/** Walk an uploader's newest profile pages, then hydrate each post with the public video API. */
+export function createEpornerTrustedPoolLoader({ fetchImpl = fetch, maxPages = 40 } = {}) {
+  const cache = new Map();
+  return async (account, scene) => {
+    if (!/^[A-Za-z0-9_-]+$/.test(account)) return [];
+    const cutoff = Date.parse(scene.releaseDate);
+    const key = `${account}:${Number.isFinite(cutoff) ? cutoff : "unknown"}`;
+    if (!cache.has(key)) cache.set(key, (async () => {
+      const videos = new Map();
+      for (let page = 1; page <= maxPages; page++) {
+        const profile = new URL(`https://www.eporner.com/profile/${encodeURIComponent(account)}/uploaded-videos/`);
+        if (page > 1) profile.searchParams.set("page", String(page));
+        const response = await fetchImpl(profile);
+        if (!response.ok) throw new Error(`Eporner profile failed with HTTP ${response.status}`);
+        const html = await response.text();
+        const ids = [...html.matchAll(/(?:https?:\/\/www\.eporner\.com)?\/video-([A-Za-z0-9]+)(?:\/|["'?#])/g)]
+          .map((match) => match[1]).filter((id) => !videos.has(id));
+        if (!ids.length) break;
+        const pageVideos = [];
+        for (const id of ids) {
+          const url = new URL(VIDEO_URL);
+          url.searchParams.set("id", id);
+          url.searchParams.set("format", "json");
+          try {
+            const detail = await fetchImpl(url, { headers: { accept: "application/json" } });
+            if (!detail.ok) continue;
+            const video = await detail.json();
+            if (video && validEpornerUrl(video.url) && validEpornerEmbedUrl(video.embed)) {
+              videos.set(id, video);
+              pageVideos.push(video);
+            }
+          } catch { /* A missing post must not hide other uploads. */ }
+        }
+        if (Number.isFinite(cutoff) && pageVideos.length && pageVideos.every((video) => {
+          const added = Date.parse(video.added);
+          return Number.isFinite(added) && added < cutoff - 86_400_000;
+        })) break;
+      }
+      return [...videos.values()];
+    })().catch((error) => { cache.delete(key); throw error; }));
+    const videos = await cache.get(key);
+    return Number.isFinite(cutoff) ? videos.filter((video) => {
+      const added = Date.parse(video.added);
+      return !Number.isFinite(added) || added >= cutoff - 86_400_000;
+    }) : videos;
+  };
+}
 
 export function validEpornerUrl(value) {
   try {

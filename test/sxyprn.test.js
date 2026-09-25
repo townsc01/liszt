@@ -47,6 +47,20 @@ test("matching prefers the site's native post when duplicate uploads have equal 
   assert.deepEqual(await createSxyprnLookup({ client: source, maxMatches: 2 })(scene), [url, other]);
 });
 
+test("native duplicate wins with the default single result limit", async () => {
+  const source = client({ videos: [candidate(other, scene.title, true), candidate(url, scene.title, false)] });
+  assert.deepEqual(await createSxyprnLookup({ client: source })(scene), [url]);
+  assert.deepEqual(source.calls.filter(([kind]) => kind === "details"), [["details", url]]);
+});
+
+test("Sxyprn performer normalization admits retitled posts for non-coded scenes", async () => {
+  for (const [name, title] of [["Ashley Vixen ls", "Ashley Vixen alternate scene"],
+    ["ElaYuzuki", "Ela Yuzuki alternate scene"]]) {
+    const source = client({ videos: [candidate(url, title)], detailTitle: title });
+    assert.deepEqual(await createSxyprnLookup({ client: source })({ ...scene, performers: [name] }), [url]);
+  }
+});
+
 test("Mambo scene codes recover posts with an alias or missing performer metadata", async () => {
   const coded = { ...scene, id: "mambo-perv:4846367", studioId: "mambo-perv", title: "Riley Rabbit pale skin white Brazilian goth fucked by a big black cock OB632 featuring Negro Top Oficial", performers: [] };
   const postTitle = "Riley Rabbit pale skin white Brazilian goth fucked by a big black cock OB632";

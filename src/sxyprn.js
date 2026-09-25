@@ -104,12 +104,13 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
     }
     if (!successfulSearches) throw new Error("Sxyprn search unavailable");
     const mapped = [...allCandidates.values()].map((item) => ({ ...item, duration: Number(item.durationSeconds) }));
-    const identity = code ? (item) => hasSceneEvidence(scene, item.title, code) ||
-      words(item.title).join(" ").includes(words(scene.title).join(" ")) : null;
+    const identity = (item) => hasSceneEvidence(scene, item.title, code) ||
+      (words(scene.title).length > 0 && words(item.title).join(" ").includes(words(scene.title).join(" ")));
     const picked = pickMatch(scene, mapped, { identity });
     if (!picked) return [];
     const sameStem = mapped.filter((item) => titleStem(item.title) === titleStem(picked.title));
-    const ranked = [picked, ...sameStem.filter((item) => item.url !== picked.url)];
+    const ranked = [picked, ...sameStem.filter((item) => item.url !== picked.url)]
+      .sort((a, b) => Number(a.isExternal) - Number(b.isExternal));
     const verified = [];
     let successfulDetails = 0;
     for (const item of ranked.slice(0, Math.max(3, maxMatches))) {
