@@ -29,6 +29,20 @@ before trusting a miss.)
    metadata-poor and let the matching cascade treat it as duration-less (unmatched until a
    later pass). No manual review - per Chris, nothing queues for a human.
 
+## Creator studios need no alias map (supersedes the Onlyfans-alias branch, PR #44)
+
+Chris asked 2026-09-25 whether the studio-alias map is still needed once scraped metadata
+exists. Measured answer: no. Retrieval for creator content runs on PERFORMER-name queries,
+and TPDB's performer names for creator scenes ARE the tube aliases ("Marfe okkk" found its
+scene 2/2 on sxyprn; token normalization absorbs "Marfe.Ok" vs "Marfe okkk"). The tube's
+"Onlyfans" studio label never enters the pipeline - studio-in-title was already falsified as
+a match signal (13/13 FP) and retrieval never queries the tube studio bucket. Once the
+duration is enriched, the normal cascade admits (Marfe, 1418s exact) or rejects the
+performer-catalog noise (Lola Bratz 8/8 wrong-scene) unchanged. The only creator-studio
+adjustment left: skip the studio-name query for mapped creator studios (it returns noise);
+that is a flag on the studio record, not a mapping table. Coverage floor stands: scenes not
+uploaded under any performer alias stay unmatched - retrieval failure, not gate failure.
+
 ## Measured basis
 
 - 7/8 recent Maximo Garcia scenes lack TPDB durations; SLR/analvids release URLs exist for all
