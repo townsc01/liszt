@@ -20,7 +20,7 @@ reviews:
       enabled: false
   auto_review:
     enabled: true
-    drafts: false
+    drafts: true  # race entries are draft PRs - review them
   path_filters:
     # Defaults already cover lock files; keep reviews off vendored/build output.
     - "!dist/**"
