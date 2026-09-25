@@ -49,6 +49,44 @@ Chris's proposed stage 4, measured with the exact variant (duration +-2s AND (pe
 - Mechanism: same-studio scenes cluster at near-identical durations and repost titles almost always carry the studio tag, so studio-only matches are pure noise.
 - **Verdict: rejected as a match condition. Studio stays query-only** (query construction above), where it measured as a recall win.
 
+
+## Trusted-uploader pools (eporner, measured 2026-09-25)
+
+Some high-volume uploaders consistently carry a studio's releases but title them in an
+obfuscated convention that open search cannot match. Proof case (Chris, 2026-09-25): eporner
+profile **Vovick17** (1,589 uploads). Crawled the newest ~320 uploads (profile pages reach
+back to April): **18/46 (39%) of the last month's Mambo Perv + Lancelot Styles Evolution
+scenes are present**, every one within +-2s of the TPDB duration (17 of 18 exact or 1s off),
+every one titled like `LLW - LanaWills 924` / `Little Latina Whore MAYA922` - unicode-bold
+(NFKC-foldable), FIRST-NAME-only, with a trailing MMDD code equal to the scene's release
+date. These uploads are invisible to the open-search gate: first-name-only titles fail the
+every-token performer check, and tag search is ruled out. The uploader profile is the
+retrieval path.
+
+The rule:
+
+1. **Trust.** When >= 3 verified matches for a studio in the trailing 60 days resolve to the
+   same uploader account, mark (studio, uploader) trusted and poll that profile's
+   uploaded-videos feed as an additional candidate pool for the studio's unmatched scenes.
+   Trust decays: one verified false match from the pool revokes it and the pool's links are
+   re-queued through the open-search gate.
+2. **Pool construction.** Profile pages newest-first, no search queries at all - this
+   sidesteps tag search and title-mangling entirely. Depth: until uploads predate the oldest
+   unmatched scene for the studio.
+3. **Pool-scoped gate (ONLY inside trusted pools).** NFKC unicode fold, strip decorative
+   symbols; duration +-2s unchanged; identity = any performer token OR a FIRST-NAME-only
+   token; and when the title carries a trailing MMDD code it MUST equal the scene release
+   date +-1 day. First-name acceptance stays forbidden on open search.
+4. **Measured on the Vovick17 pool:** 18 true accepts, 0 false accepts across the 46-scene
+   last-month test set. The duration gate alone would have admitted wrong-scene collisions
+   (the 3102s Cherry Kiss scene sits 2s from the 3100s LanaWills upload); the name/code
+   requirement rejects every one.
+
+Caveat against over-trusting the uploader: coverage is partial, not "almost all" - 28/46
+last-month scenes are absent (whole performers missing: Margo Ferreira, Line Heat, Bibi,
+Megan Noir, Andrea Frank, Ellie Nova; same-day releases not yet up). Uploader pools supplement
+open search; they do not replace it.
+
 ## Tiebreak: picking among multiple accepted candidates
 
 When stages 1+3 accept more than one candidate (duplicate rips are routine - "Perfect Hottie Wants Anal" has 5 in-window sxyprn uploads):
@@ -71,4 +109,6 @@ When stages 1+3 accept more than one candidate (duplicate rips are routine - "Pe
 - "Legendary Alinas First Anal" must NOT match "Tushy 26 09 06 maddie wren perfect hottie wants anal" (same studio, in-window, wrong performer - this is the studio-OR trap).
 - Duration off by 3s: no match even with performer present.
 - "Beauty Saves Marriage With Anal" (2503s, performer "Geishakyd") MUST match the 2504s sxyprn uploads - regression test for single-token performer queries.
+- Trusted-pool disambiguation: "Maya Bell 2115s" MUST match `MAYA922` (2115s) and MUST NOT match `MAYA922 2` (2555s) - same uploader, same name, same date code; duration is the only separator.
+- Trusted-pool collision: the 3102s Cherry Kiss scene MUST NOT match the 3100s `LLW - LanaWills 924` upload (2s apart, wrong performer, wrong date code).
 - From the 2026-09-25 fresh-item test: "Maya Bell, 20Y Beautiful Brazilian First Double Anal" (2115s) must NOT match the in-window Yasmina Khan gangbang upload; "Petite Argentinian Anal Demolished" (1418s) must NOT match the in-window "Badgirl Sandra" creampie upload. Both land inside duration+date with no other check - stage 3 is what rejects them.
