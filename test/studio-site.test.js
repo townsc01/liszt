@@ -194,7 +194,7 @@ test("cleanText decodes HTML entities in scraped content", () => {
   // Test cleanText via extractStudioMetadata which uses cleanText internally
   // The performers meta tag content will be processed through cleanText
   // Use single quotes for the HTML attribute to avoid issues with double quotes
-  const html = `<meta itemprop="actor" content='Test "Quote"'>`;
+  const html = `<meta itemprop="actor" content="Test &quot;Quote&quot; Plus">`;
   const result = extractStudioMetadata(html, "https://analvids.com/video/one");
-  assert.deepEqual(result.performers, ["Test \"Quote\""]);
+  assert.deepEqual(result.performers, ["Test \"Quote\" Plus"]);
 });
