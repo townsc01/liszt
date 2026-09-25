@@ -1,4 +1,5 @@
 import { enrichFromStudioSite, metadataIncomplete, parseIsoDuration } from "../studio-site.js";
+import { mapWithConcurrency } from "../concurrency.js";
 
 const API_BASE_URL = "https://api.theporndb.net";
 const SITES_URL = `${API_BASE_URL}/sites`;
@@ -211,9 +212,9 @@ export async function fetchTpdbScenes({ now = new Date(), days = 90, fetchImpl =
     if (batch.length < PER_PAGE) {
       const performerGenders = await resolvePerformerGenders(records, fetchImpl, apiKey);
       const parsed = records.map((record) => parseTpdbScene(record, performerGenders, sourceUrl, { requireFemalePerformer })).filter(Boolean);
-      const scenes = await Promise.all(parsed.map((scene) => metadataIncomplete(scene) && !scene.releaseUrl.startsWith(`${API_BASE_URL}/`)
+      const scenes = await mapWithConcurrency(parsed, (scene) => metadataIncomplete(scene) && !scene.releaseUrl.startsWith(`${API_BASE_URL}/`)
         ? enrichFromStudioSite(scene, { fetchImpl })
-        : scene));
+        : scene);
       return { scenes, verifiedEmpty: scenes.length === 0 };
     }
   }
