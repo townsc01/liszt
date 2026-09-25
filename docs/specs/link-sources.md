@@ -1,5 +1,7 @@
 # Playback link sources: sxyprn and eporner
 
+> **Depends on:** none. **Status:** implemented (#46).
+
 > Codex spec. The foundational statement: liszt resolves playback for TPDB-catalogue scenes
 > against **two tube sources, sxyprn and eporner**, and stores what it finds as LINKS on the
 > scene record. How those links are turned into playable embeds is specified per source in

@@ -1,5 +1,7 @@
 # Studio-site metadata scraper (draft spec, Chris 2026-09-25)
 
+> **Depends on:** none. **Status:** implemented (#50).
+
 ## Principle
 
 TPDB is a cache, not the source of truth. When TPDB lacks a field, scrape the studio's own
