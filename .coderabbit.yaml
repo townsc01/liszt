@@ -11,6 +11,13 @@ reviews:
   high_level_summary: true
   collapse_walkthrough: true
   request_changes_workflow: false
+  finishing_touches:
+    # No bot-generated docstring/unit-test commits - checkboxes invite unvetted
+    # bot commits to branches that get squash-merged and deleted.
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
   auto_review:
     enabled: true
     drafts: false
