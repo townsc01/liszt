@@ -10,5 +10,9 @@ export function isSxyprnVideo(value) {
 }
 
 export function topSxyprnUrl(scene) {
-  return Array.isArray(scene?.sxyprnUrls) ? scene.sxyprnUrls.find(isSxyprnVideo) || null : null;
+  return Array.isArray(scene?.videoUrls) ? scene.videoUrls.find((link) => link?.source === "sxyprn" && isSxyprnVideo(link.url))?.url || null : null;
+}
+
+export function topVideoLink(scene) {
+  return Array.isArray(scene?.videoUrls) ? scene.videoUrls.find((link) => link?.source === "sxyprn") || scene.videoUrls.find((link) => link?.source === "eporner") || null : null;
 }

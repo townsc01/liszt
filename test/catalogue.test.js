@@ -102,6 +102,7 @@ test("maps TPDB scene records and tolerates absent optional metadata", async () 
     sourceSceneId: "tpdb-scene-uuid-001",
     title: "Example Tushy Scene",
     releaseDate: "2026-09-20",
+    durationSec: null,
     performers: ["Performer One"],
     thumbnailUrl: "https://cdn.example/tushy-scene.jpg",
     releaseUrl: "https://www.tushy.com/scenes/example-tushy-scene",

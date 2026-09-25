@@ -32,6 +32,16 @@ test("Sxyprn searches use the site's hyphenated form and verify the post", async
   assert.deepEqual(source.calls.at(-1), ["details", url]);
 });
 
+test("duration second pass recovers retitled cards without widening the two-second gate", async () => {
+  const durationScene = { ...scene, durationSec: 2115, performers: ["Maya Bell"] };
+  const retitled = candidate(url, "New Maya Bell release");
+  retitled.durationSeconds = 2116;
+  const source = client({ videos: [retitled], detailTitle: retitled.title });
+  assert.deepEqual(await createSxyprnLookup({ client: source })(durationScene), [url]);
+  retitled.durationSeconds = 2118;
+  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [retitled], detailTitle: retitled.title }) })(durationScene), []);
+});
+
 test("matching prefers the site's native post when duplicate uploads have equal titles", async () => {
   const source = client({ videos: [candidate(other, scene.title, true), candidate(url, scene.title, false)] });
   assert.deepEqual(await createSxyprnLookup({ client: source, maxMatches: 2 })(scene), [url, other]);
@@ -61,13 +71,13 @@ test("unrelated, unverified and unsafe hits never become links", async () => {
 
 test("existing links survive failures and refreshes but old Eporner fields are removed", async () => {
   const checkedAt = "2026-09-23T12:00:00.000Z";
-  const prior = { ...scene, sxyprnUrls: [url], sxyprnCheckedAt: checkedAt, epornerUrls: ["https://www.eporner.com/video-ABC/x/"] };
+  const prior = { ...scene, videoUrls: [{ source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" }], videoCheckedAt: checkedAt, epornerUrls: ["https://www.eporner.com/video-ABC/x/"] };
   const [cached] = await enrichSxyprnLinks([scene], [prior], async () => { throw new Error("should not recheck"); }, { now: new Date("2026-09-24T00:00:00Z") });
-  assert.deepEqual(cached.sxyprnUrls, [url]);
-  assert.equal(cached.sxyprnCheckedAt, checkedAt);
+  assert.deepEqual(cached.videoUrls.map((link) => link.url), [url]);
+  assert.equal(cached.videoCheckedAt, checkedAt);
   assert.equal(cached.epornerUrls, undefined);
   const [retained] = await enrichSxyprnLinks([scene], [prior], async () => { throw new Error("offline"); }, { now: new Date("2026-09-25T00:00:00Z") });
-  assert.deepEqual(retained.sxyprnUrls, [url]);
+  assert.deepEqual(retained.videoUrls.map((link) => link.url), [url]);
   assert.equal(topSxyprnUrl(retained), url);
   assert.match(renderSceneLinks(retained), /Sxyprn ↗/);
   assert.doesNotMatch(renderSceneLinks(retained), /Eporner/);
@@ -75,27 +85,27 @@ test("existing links survive failures and refreshes but old Eporner fields are r
 });
 
 test("the recent window bounds automatic checks while retaining older Sxyprn links", async () => {
-  const old = { ...scene, releaseDate: "2026-07-01", sxyprnUrls: [url] };
+  const old = { ...scene, releaseDate: "2026-07-01", videoUrls: [{ source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" }] };
   let calls = 0;
   const [recent, older] = await enrichSxyprnLinks([scene, old], [old], async () => { calls++; return [url]; }, { now: new Date("2026-09-24T12:00:00Z") });
   assert.equal(calls, 1);
-  assert.deepEqual(recent.sxyprnUrls, [url]);
-  assert.deepEqual(older.sxyprnUrls, [url]);
+  assert.deepEqual(recent.videoUrls.map((link) => link.url), [url]);
+  assert.deepEqual(older.videoUrls.map((link) => link.url), [url]);
 });
 
 test("a stable source URL carries a verified link across source ID changes", async () => {
-  const prior = { ...scene, id: "studio:old", sxyprnUrls: [url] };
+  const prior = { ...scene, id: "studio:old", videoUrls: [{ source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" }] };
   const current = { ...scene, id: "studio:new", title: scene.title.toUpperCase() };
   const [updated] = await enrichSxyprnLinks([current], [prior], null);
-  assert.deepEqual(updated.sxyprnUrls, [url]);
+  assert.deepEqual(updated.videoUrls.map((link) => link.url), [url]);
   const [changed] = await enrichSxyprnLinks([{ ...current, title: "A different scene" }], [prior], null);
-  assert.equal(changed.sxyprnUrls, undefined);
+  assert.equal(changed.videoUrls, undefined);
 });
 
 test("the user-confirmed Naty Heat scene retains both Sxyprn uploads", async () => {
   const naty = { ...scene, id: "lancelot-styles-evolution:4683299", title: "Newcomer Naty Heat debuts with her first anal scene", performers: ["Naty Heat"] };
   const [linked] = await enrichSxyprnLinks([naty], [], async () => { throw new Error("override should bypass search"); });
-  assert.deepEqual(linked.sxyprnUrls, [
+  assert.deepEqual(linked.videoUrls.map((link) => link.url), [
     "https://sxyprn.com/post/6ab3e3c4edbd5.html",
     "https://sxyprn.com/post/6ab46356de33e.html",
   ]);
@@ -108,12 +118,12 @@ test("studio sync remains available when Sxyprn is not available", async () => {
   const path = join(directory, "catalogue.json");
   const adapter = { id: "studio", name: "Studio", authority: { name: "Test", url: "https://source.example" }, fetchScenes: async () => ({ scenes: [{ ...scene, id: undefined }], verifiedEmpty: false }) };
   try {
-    await writeFile(path, JSON.stringify({ scenes: [{ ...scene, sxyprnUrls: [url], epornerUrls: ["https://www.eporner.com/video-ABC/x/"] }], studios: [] }));
+    await writeFile(path, JSON.stringify({ scenes: [{ ...scene, videoUrls: [{ source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" }], epornerUrls: ["https://www.eporner.com/video-ABC/x/"] }], studios: [] }));
     const result = await sync({ now: new Date("2026-09-24T12:00:00Z"), paths: [path], adapters: [adapter] });
-    assert.deepEqual(result.scenes[0].sxyprnUrls, [url]);
+    assert.deepEqual(result.scenes[0].videoUrls.map((link) => link.url), [url]);
     assert.equal(result.scenes[0].epornerUrls, undefined);
     await enrichStoredCatalogue(path, { lookup: async () => { throw new Error("offline"); } });
-    assert.deepEqual(result.scenes[0].sxyprnUrls, [url]);
+    assert.deepEqual(result.scenes[0].videoUrls.map((link) => link.url), [url]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
