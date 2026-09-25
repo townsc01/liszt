@@ -1,0 +1,52 @@
+# CodeRabbit configuration for liszt
+# Reference: https://docs.coderabbit.ai/reference/configuration
+language: "en-US"
+early_access: false
+
+reviews:
+  # Concise, low-noise reviews - findings over prose.
+  profile: "chill"
+  poem: false
+  review_status: true
+  high_level_summary: true
+  collapse_walkthrough: true
+  request_changes_workflow: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    # Defaults already cover lock files; keep reviews off vendored/build output.
+    - "!dist/**"
+    - "!node_modules/**"
+    - "!docs/**.md"  # specs are reviewed by humans/agents; docs PRs are mechanical
+  path_instructions:
+    - path: "src/matching.js"
+      instructions: |
+        The matching gate contract in docs/specs/matching-algorithm.md is authoritative.
+        Open-search gate (stage 3): accept only when every token of a performer name is
+        present in the normalised candidate title, OR the candidate title contains the
+        normalised scene title verbatim. An MMDD code is NOT an open-search identity
+        signal. Trusted-pool gate (stage 5, inside hand-listed uploader pools only):
+        duration +/-2s; identity = any performer token OR a first-name-only token; a
+        trailing MMDD code, when present, MUST match the scene release date within +/-1 day. Passes may
+        differ in query breadth, never in the gate. Flag any change that weakens or
+        bypasses these gates. Candidate authors/uploaders may be objects
+        ({id, name, url}) - identity must be extracted, never String()-ed.
+    - path: "src/sxyprn.js"
+      instructions: |
+        Per docs/specs/sxyprn-embed.md. Sxyprn performer matching must survive retitled
+        uploads (camelCase splits, trailing tags like "ls"). Native posts beat external
+        duplicates before any verification limit is applied.
+    - path: "src/eporner.js"
+      instructions: |
+        Per docs/specs/eporner-embed.md and matching-algorithm.md. The trusted-uploader
+        pool fallback must be wired into production callers (src/server.js), not only
+        tests. First-name + MMDD house style ("LLW - LanaWills 924") is the identity
+        signal inside trusted pools.
+    - path: "test/**"
+      instructions: |
+        Tests use node:test. Every fix needs a regression test proving the behavior;
+        flag fixes landed without a covering test.
+
+chat:
+  auto_reply: true
