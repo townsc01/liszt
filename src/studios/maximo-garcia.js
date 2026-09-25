@@ -6,4 +6,5 @@ export const studio = createTpdbStudio({
   siteName: "Maximo Garcia",
   siteId: 7875,
   requireFemalePerformer: true,
+  creatorStudio: true,
 });
