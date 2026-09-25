@@ -11,3 +11,4 @@ How to work on Liszt. Read this before writing any code.
 7. **Review loop:** expect review comments from bigideaclanker[bot]. Address them on the same PR - do not open a new one.
 8. **Keep it lightweight.** The app must stay small in memory: bound concurrency, stream rather than buffer, no unbounded fan-out. v1.0 gate: a full sync plus playback-source check runs comfortably in 512MB. Do not optimize ahead of need - correctness first, belt-tightening only when a gate or a real crash demands it.
 9. **Prove the test catches the bug.** A bug fix needs a regression test AND evidence the test fails without the fix: run it against the un-fixed code and paste the failing output in the PR description. A test that passes against broken code proves nothing.
+10. **State your model.** Every agent-authored PR names the model the entrant is running in the PR description (e.g. `Model: openhands/deepseek-v4.1-flash`). Update the line if the run switches models.
