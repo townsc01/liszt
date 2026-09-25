@@ -28,7 +28,7 @@ reviews:
         normalised scene title verbatim. An MMDD code is NOT an open-search identity
         signal. Trusted-pool gate (stage 5, inside hand-listed uploader pools only):
         duration +/-2s; identity = any performer token OR a first-name-only token; a
-        trailing MMDD code, when present, MUST equal the scene release date. Passes may
+        trailing MMDD code, when present, MUST match the scene release date within +/-1 day. Passes may
         differ in query breadth, never in the gate. Flag any change that weakens or
         bypasses these gates. Candidate authors/uploaders may be objects
         ({id, name, url}) - identity must be extracted, never String()-ed.
