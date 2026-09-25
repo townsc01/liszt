@@ -1,3 +1,5 @@
+import { enrichFromStudioSite, metadataIncomplete, parseIsoDuration } from "../studio-site.js";
+
 const API_BASE_URL = "https://api.theporndb.net";
 const SITES_URL = `${API_BASE_URL}/sites`;
 const PER_PAGE = 100;
@@ -17,10 +19,11 @@ async function fetchWithRateLimitRetry(url, options, fetchImpl) {
   }
 }
 
-export function createTpdbStudio({ id, name, siteName = name, siteId, requireFemalePerformer = false }) {
+export function createTpdbStudio({ id, name, siteName = name, siteId, requireFemalePerformer = false, creatorStudio = false }) {
   const adapter = {
   id,
   name,
+  creatorStudio,
   authority: {
     name: "ThePornDB",
     url: `${API_BASE_URL}/scenes`,
@@ -46,8 +49,8 @@ function isMaleGender(gender) {
 
 export function parseTpdbScene(record, performerGenders = new Map(), sourceUrl = DEFAULT_SOURCE_URL, { requireFemalePerformer = false } = {}) {
   const sourceSceneId = getSceneId(record);
-  if (!sourceSceneId || !record.date || !record.title) {
-    throw new Error("TPDB scene is missing its ID, date, or title");
+  if (!sourceSceneId || !record.title) {
+    throw new Error("TPDB scene is missing its ID or title");
   }
   const femalePresent = Array.isArray(record.performers) && record.performers.some((performer) => {
     const identifier = performer?.id ?? performer?.uuid ?? performer?._id;
@@ -68,11 +71,13 @@ export function parseTpdbScene(record, performerGenders = new Map(), sourceUrl =
       .filter(Boolean)
     : [];
   const releaseUrl = record.url || `${API_BASE_URL}/scenes/${encodeURIComponent(sourceSceneId)}`;
+  const durationSeconds = parseIsoDuration(record.duration_seconds ?? record.duration ?? record.runtime);
   return {
     sourceSceneId: String(sourceSceneId),
     title: record.title.trim(),
     releaseDate: record.date,
     performers: [...new Set(performers)],
+    ...(durationSeconds ? { durationSeconds } : {}),
     thumbnailUrl: record.image || record.poster_image || record.poster || "",
     releaseUrl,
     source: "ThePornDB",
@@ -206,7 +211,10 @@ export async function fetchTpdbScenes({ now = new Date(), days = 90, fetchImpl =
     records.push(...batch);
     if (batch.length < PER_PAGE) {
       const performerGenders = await resolvePerformerGenders(records, fetchImpl, apiKey);
-      const scenes = records.map((record) => parseTpdbScene(record, performerGenders, sourceUrl, { requireFemalePerformer })).filter(Boolean);
+      const parsed = records.map((record) => parseTpdbScene(record, performerGenders, sourceUrl, { requireFemalePerformer })).filter(Boolean);
+      const scenes = await Promise.all(parsed.map((scene) => metadataIncomplete(scene) && !scene.releaseUrl.startsWith(`${API_BASE_URL}/`)
+        ? enrichFromStudioSite(scene, { fetchImpl })
+        : scene));
       return { scenes, verifiedEmpty: scenes.length === 0 };
     }
   }

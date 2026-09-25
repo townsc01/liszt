@@ -23,6 +23,8 @@ An adapter returning no scenes must set `verifiedEmpty: true` after checking tha
 
 The TPDB adapters resolve each matching site record, then call `/scenes` with its site ID and the 90-day cutoff. They send `TPDB_API_KEY` as a Bearer token and follow paginated results. Keep this key in the server environment; it is never sent to the browser or written into catalogue data. As with the other adapters, the shared sync retains only the rolling 90-day window and preserves last-good records on a failed refresh.
 
+When a TPDB record is missing duration, release date, or performers, Liszt immediately fetches its stored studio release URL. Structured JSON-LD and meta tags are preferred, with small host recipes for SexLikeReal and AnalVids as fallbacks. Enriched fields retain `studio-site` provenance; dead or unparseable pages are marked metadata-poor. A recent scene that completes Sxyprn matching with no results is scraped once per performer-naming version so the next matching pass can use the studio's canonical names. Creator studios, currently Maximo Garcia, use performer-only retrieval queries instead of noisy studio-name queries.
+
 To add another studio, implement and register an adapter for its chosen source, add representative fixtures and parsing tests, then run `npm test` and `npm run sync`. Inspect `data/catalogue.json` and the studio's refresh status. A source shared by several studios could instead be implemented as a reusable adapter.
 
 ## Run and deploy
