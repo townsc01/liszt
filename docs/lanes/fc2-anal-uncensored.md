@@ -121,12 +121,10 @@ One new adapter, `src/studios/fc2.js`, implementing the existing contract
 **Studio/display naming.** Register the adapter as `id: "fc2"`, `name: "FC2 - anal (uncensored)"`.
 Do not create one adapter per seller (thousands of sellers); the seller rides on the scene record.
 
-**The 90-day window needs a decision.** The shared sync drops scenes older than 90 days, but
-Chris's watchlist rules say the Asian lanes are *all* anal scenes, and the seed cut spans
-2017-05-25 to 2026-09-22. Proposal: add an optional `windowDays` to the adapter contract
-(default 90, `null` = no window) and set `windowDays: null` for this lane. If Chris would rather
-keep the rolling window, set it to 90 and the lane behaves like the western studios.
-**Flagged as open question #1 - Codex should implement the `windowDays` hook either way.**
+**Window: DECIDED (Chris, 2026-09-25) - 90 days.** The lane keeps the standard rolling 90-day
+window like the western studios; the optional `windowDays` contract hook keeps its default of
+90 and no unlimited exception is used. The full-history seed (2017-05-25 to 2026-09-22) still
+imports as the catalogue baseline, but the watchlist view rolls at 90 days.
 
 ## 5. Japanese -> English titles
 
@@ -239,13 +237,12 @@ Tests to write:
 - Rate-limit: spacing >= 8s, 429 -> immediate stop + 60-minute backoff state.
 - Translation: glossary rendering of the formulaic patterns, LLM failure fallback, cache
   invalidation on title change.
-- Contract: `windowDays: null` keeps old scenes; default keeps 90-day behaviour for other lanes.
+- Contract: `windowDays` keeps its 90-day default for this lane too (Chris, 2026-09-25).
 - End-to-end: seed CSV row-for-row reproduction from recorded fixtures.
 
 ## 10. Open questions for Chris
 
-1. **Window:** whole-history FC2 lane (proposal: `windowDays: null`) or the standard rolling
-   90 days? The rules say "all anal scenes" for Asian lanes; Liszt today enforces 90 days.
+1. **Window:** RESOLVED 2026-09-25 - Chris: 90 days, same rolling window as the western lanes.
 2. **Crossdresser tags:** RESOLVED 2026-09-25 - Chris: no crossdressing or trans content at
    all. 女装子 and related terms are hard exclusions (section 3, rule 4).
 3. **Sellers as studios:** RESOLVED 2026-09-25 - each whitelisted seller is its own studio
