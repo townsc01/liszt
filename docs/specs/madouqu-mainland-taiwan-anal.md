@@ -1,6 +1,6 @@
 # Lane spec: Taiwan/mainland releases (male-on-female anal) via madouqu.com
 
-> **Depends on:** none for this metadata-only lane (the future playback/matcher work would depend on the per-lane matcher contract in link-sources.md). **Status:** spec'd.
+> **Depends on:** none for this metadata-only lane (the future playback/matcher work would depend on the per-lane matcher contract in link-sources.md).
 
 > **Status: FINAL spec, 2026-09-26.** Scope: metadata/catalogue lane only - no playback
 > links, no video embeds (see section 6; the playback-source question is a separate later

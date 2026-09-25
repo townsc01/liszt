@@ -1,6 +1,6 @@
 # sxyprn embed: proxied playback
 
-> **Depends on:** link-sources (implemented). **Status:** spec'd.
+> **Depends on:** link-sources.
 
 > Codex spec. How a verified sxyprn link becomes playable video in liszt. Companion to
 > `docs/specs/link-sources.md` (link resolution) and `docs/specs/eporner-embed.md`.

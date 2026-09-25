@@ -1,6 +1,6 @@
 # Studio-site metadata scraper (draft spec, Chris 2026-09-25)
 
-> **Depends on:** none. **Status:** implemented (#50).
+> **Depends on:** none.
 
 ## Principle
 
