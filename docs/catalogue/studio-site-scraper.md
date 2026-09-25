@@ -20,14 +20,23 @@ before trusting a miss.)
    missing release date or performers count too) triggers a source-site scrape immediately -
    event-driven on the TPDB poll result, not a batch job and not lazy at match time. New
    ingest and re-polls of existing scenes both fire it.
-2. **Fetch.** GET the stored release URL with a normal UA. Parse JSON-LD / meta tags first
+2. **Second trigger: the no-match case (Chris 2026-09-25).** TPDB can carry a performer alias
+   that differs from the studio's own naming, and the tube reposts follow the STUDIO's
+   branding - so a scene can fail retrieval purely on a name mismatch. When a scene completes
+   a matching pass with ZERO matches, fire a source-site scrape to align the search data
+   points: pull the studio's canonical performer naming (and any other stale fields), update
+   the scene record, and re-run retrieval with the corrected names on the next pass. The
+   no-match scrape fires at most once per scene per naming version - a scene that stays
+   unmatched after alignment is genuinely absent from the tubes, not retried forever.
+
+3. **Fetch.** GET the stored release URL with a normal UA. Parse JSON-LD / meta tags first
    (cheap, stable); fall back to a per-host extractor only where metadata is absent.
-3. **Per-host extractors.** Small, data-driven: host -> CSS/regex recipe, kept in one table so
+4. **Per-host extractors.** Small, data-driven: host -> CSS/regex recipe, kept in one table so
    adding a studio is a row, not code. First rows: sexlikereal.com (JSON-LD duration),
    analvids.com (duration + performers).
-4. **Write-back.** Enriched fields update the scene record with provenance `studio-site` so
+5. **Write-back.** Enriched fields update the scene record with provenance `studio-site` so
    later TPDB backfills can be compared, not blindly overwritten.
-5. **Failure handling.** 404/dead URL or no extractable field: mark the scene
+6. **Failure handling.** 404/dead URL or no extractable field: mark the scene
    metadata-poor and let the matching cascade treat it as duration-less (unmatched until a
    later pass). No manual review - per Chris, nothing queues for a human.
 
