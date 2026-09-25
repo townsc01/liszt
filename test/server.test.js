@@ -125,6 +125,33 @@ test("video endpoint warms and caches a stream, then proxies range requests", as
   }
 });
 
+test("video endpoint falls back to legacy sxyprnUrls for pre-migration scenes", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "liszt-server-video-legacy-"));
+  const path = join(directory, "catalogue.json");
+  const postUrl = "https://sxyprn.com/post/6ab5422fa84b6.html";
+  try {
+    await writeFile(path, JSON.stringify({ scenes: [
+      { id: "studio:1", sxyprnUrls: [postUrl], sxyprnCheckedAt: "2026-09-24T22:03:36.556Z" },
+      { id: "studio:2", sxyprnUrls: ["http://sxyprn.com/post/6ab5422fa84b6.html", "https://sxyprn.com.evil.example/post/6ab5422fa84b6.html"] },
+    ] }));
+    await withServer({
+      cataloguePath: path,
+      videoDetails: async ({ url }) => { assert.equal(url, postUrl); return { url, streamUrl: "https://sxyprn.com/cdn8/fresh-token" }; },
+      fetchVideo: async () => new Response("video bytes", { status: 206, headers: { "content-type": "video/mp4", "content-range": "bytes 0-10/11", "accept-ranges": "bytes" } }),
+    }, async (origin) => {
+      const resolved = await fetch(`${origin}/api/video/resolve?scene=studio%3A1`);
+      assert.equal(resolved.status, 204);
+      const response = await fetch(`${origin}/api/video?scene=studio%3A1`);
+      assert.equal(response.status, 206);
+      assert.equal(await response.text(), "video bytes");
+      const unsafe = await fetch(`${origin}/api/video?scene=studio%3A2`);
+      assert.equal(unsafe.status, 404);
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("video endpoint rejects an off-site stream returned by the extractor", async () => {
   const directory = await mkdtemp(join(tmpdir(), "liszt-server-video-unsafe-"));
   const path = join(directory, "catalogue.json");

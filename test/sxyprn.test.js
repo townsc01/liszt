@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createSxyprnLookup, enrichSxyprnLinks, enrichStoredCatalogue, searchSlug, validSxyprnUrl } from "../src/sxyprn.js";
 import { renderSceneLinks } from "../public/scene-links.js";
-import { isSxyprnVideo, topSxyprnUrl } from "../public/scene-video.js";
+import { isSxyprnVideo, topSxyprnUrl, topVideoLink } from "../public/scene-video.js";
 import { sync } from "../src/sync.js";
 
 const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Double Anal Debut", releaseDate: "2026-09-20", performers: ["Lana Wills"], durationSec: 1800, releaseUrl: "https://source.example/1" };
@@ -96,6 +96,43 @@ test("existing links survive failures and refreshes but old Eporner fields are r
   assert.match(renderSceneLinks(retained), /Sxyprn ↗/);
   assert.doesNotMatch(renderSceneLinks(retained), /Eporner/);
   assert.match(renderSceneLinks(scene), /Source ↗/);
+});
+
+test("legacy sxyprnUrls-only scenes stay playable on the read path", () => {
+  const legacy = { ...scene, sxyprnUrls: [url], sxyprnCheckedAt: "2026-09-23T12:00:00.000Z" };
+  assert.equal(topSxyprnUrl(legacy), url);
+  assert.deepEqual(topVideoLink(legacy), { source: "sxyprn", url, embedUrl: null, verifiedAt: "2026-09-23T12:00:00.000Z" });
+  assert.match(renderSceneLinks(legacy), /Sxyprn ↗/);
+  assert.match(renderSceneLinks(legacy), new RegExp(url.replace(/[.+*?^$()[\]{}|\\]/g, "\\$&")));
+
+  const noTimestamp = { ...scene, sxyprnUrls: [url] };
+  assert.equal(topSxyprnUrl(noTimestamp), url);
+  assert.equal(topVideoLink(noTimestamp).verifiedAt, new Date(0).toISOString());
+
+  const unsafe = { ...scene, sxyprnUrls: ["http://sxyprn.com/post/6ab5422fa84b6.html", "https://sxyprn.com.evil.example/post/6ab5422fa84b6.html", `${url}?x=1`] };
+  assert.equal(topSxyprnUrl(unsafe), null);
+  assert.equal(topVideoLink(unsafe), null);
+  assert.doesNotMatch(renderSceneLinks(unsafe), /Sxyprn/);
+});
+
+test("videoUrls remain authoritative when both link shapes are present", () => {
+  const migratedUrl = "https://sxyprn.com/post/6aaad4186a540.html";
+  const both = { ...scene, videoUrls: [{ source: "sxyprn", url: migratedUrl, embedUrl: null, verifiedAt: "2026-09-24T00:00:00.000Z" }], sxyprnUrls: [url] };
+  assert.equal(topSxyprnUrl(both), migratedUrl);
+  assert.equal(topVideoLink(both).source, "sxyprn");
+  const rendered = renderSceneLinks(both);
+  assert.match(rendered, /Sxyprn 1 ↗/);
+  assert.match(rendered, /Sxyprn 2 ↗/);
+});
+
+test("the bundled catalogue's legacy-only scenes resolve to a playable link", async () => {
+  const catalogue = JSON.parse(await readFile(new URL("../data/catalogue.json", import.meta.url), "utf8"));
+  const legacyScenes = catalogue.scenes.filter((item) => !item.videoUrls?.length && item.sxyprnUrls?.length);
+  assert.equal(legacyScenes.length, 92);
+  for (const item of legacyScenes) {
+    assert.ok(validSxyprnUrl(topSxyprnUrl(item)), `${item.id} should resolve a legacy Sxyprn link`);
+    assert.equal(topVideoLink(item).source, "sxyprn");
+  }
 });
 
 test("the recent window bounds automatic checks while retaining older Sxyprn links", async () => {

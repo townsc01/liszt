@@ -59,7 +59,10 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
         const id = url.searchParams.get("scene");
         const catalogue = await readStore(cataloguePath);
         const scene = catalogue.scenes?.find((item) => item.id === id);
-        const postUrl = scene?.videoUrls?.find((link) => link.source === "sxyprn" && validSxyprnUrl(link.url))?.url;
+        // Legacy scenes store only sxyprnUrls; fall back to them so playback keeps
+        // working until a data refresh migrates the catalogue to videoUrls.
+        const postUrl = [...(scene?.videoUrls || []), ...(scene?.sxyprnUrls || []).map((url) => ({ source: "sxyprn", url }))]
+          .find((link) => link.source === "sxyprn" && validSxyprnUrl(link.url))?.url;
         if (!postUrl) {
           response.writeHead(404, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
           return response.end(JSON.stringify({ error: "Video unavailable" }));
