@@ -42,7 +42,7 @@ async function showScene(scene, sourceUrl) {
     player.replaceChildren(paragraph);
   };
   const loading = document.createElement("p");
-  loading.textContent = "Loading video…";
+  loading.textContent = "Resolving stream…";
   player.append(loading);
 
   const links = document.createElement("div");
@@ -65,18 +65,16 @@ async function showScene(scene, sourceUrl) {
   content.append(eyebrow, heading, metadata, player, links);
   document.title = `${scene.title} · Liszt`;
   try {
-    const response = await fetch(`/api/video?scene=${encodeURIComponent(scene.id)}`, { cache: "no-store" });
+    const videoUrl = `/api/video?scene=${encodeURIComponent(scene.id)}`;
+    const response = await fetch(`/api/video/resolve?scene=${encodeURIComponent(scene.id)}`, { cache: "no-store" });
     if (!response.ok) throw new Error("Video unavailable");
-    const data = await response.json();
-    const stream = new URL(data.url);
-    if (stream.protocol !== "https:" || stream.hostname !== "sxyprn.com") throw new Error("Invalid video URL");
     const video = document.createElement("video");
     video.controls = true;
     video.playsInline = true;
     video.preload = "metadata";
-    video.src = stream.href;
+    video.src = videoUrl;
     video.setAttribute("aria-label", `Video player for ${scene.title}`);
-    const timeout = setTimeout(() => showPlayerMessage("Video did not load here. Open it on Sxyprn using the link below."), 30_000);
+    const timeout = setTimeout(() => showPlayerMessage("Video did not load here. Open it on Sxyprn using the link below."), 90_000);
     video.addEventListener("loadedmetadata", () => clearTimeout(timeout), { once: true });
     video.addEventListener("error", () => {
       clearTimeout(timeout);

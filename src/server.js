@@ -5,18 +5,20 @@ import { fileURLToPath } from "node:url";
 import { readStore } from "./store.js";
 import { sync } from "./sync.js";
 import { enrichStoredCatalogue, validSxyprnUrl } from "./sxyprn.js";
+import { createVideoProxy } from "./video-proxy.js";
 import sxyprn from "sxyprn";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const publicRoot = join(root, "public");
 const dataPath = process.env.LISZT_DATA_PATH || join(root, "data/catalogue.json");
-const port = Number(process.env.PORT || 3000);
+const port = Number(process.env.PORT || 10000);
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml" };
 
-export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = () => sync({ paths: [cataloguePath] }), enrichCatalogue = async () => {}, videoDetails = ({ url }) => sxyprn.videos.details({ url }) } = {}) {
+export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = () => sync({ paths: [cataloguePath] }), enrichCatalogue = async () => {}, videoDetails = ({ url }) => sxyprn.videos.details({ url }), fetchVideo = fetch } = {}) {
   let refreshInProgress = null;
   let enrichmentInProgress = null;
   let generation = 0;
+  const videoProxy = createVideoProxy({ videoDetails, fetchImpl: fetchVideo });
 
   function startEnrichment() {
     if (enrichmentInProgress) return enrichmentInProgress;
@@ -52,7 +54,7 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
         response.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
         return response.end(JSON.stringify({ ...data, enrichmentPending: !!enrichmentInProgress }));
       }
-      if (url.pathname === "/api/video") {
+      if (url.pathname === "/api/video" || url.pathname === "/api/video/resolve") {
         const id = url.searchParams.get("scene");
         const catalogue = await readStore(cataloguePath);
         const scene = catalogue.scenes?.find((item) => item.id === id);
@@ -61,11 +63,17 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
           response.writeHead(404, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
           return response.end(JSON.stringify({ error: "Video unavailable" }));
         }
-        const detail = await videoDetails({ url: postUrl });
-        const stream = new URL(detail.streamUrl || "https://invalid.example/");
-        if (detail.url !== postUrl || stream.protocol !== "https:" || stream.hostname !== "sxyprn.com") throw new Error("Invalid Sxyprn video response");
-        response.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-        return response.end(JSON.stringify({ url: stream.href }));
+        try {
+          if (url.pathname.endsWith("/resolve")) {
+            await videoProxy.resolve(id, postUrl);
+            response.writeHead(204, { "cache-control": "no-store" });
+            return response.end();
+          }
+          return await videoProxy.stream(id, postUrl, request, response);
+        } catch (error) {
+          error.statusCode = 502;
+          throw error;
+        }
       }
       const requested = url.pathname === "/" ? "index.html" : normalize(url.pathname).replace(/^[/\\]+/, "");
       const path = join(publicRoot, requested);
@@ -74,8 +82,10 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
       response.writeHead(200, { "content-type": types[extname(path)] || "application/octet-stream" });
       response.end(body);
     } catch (error) {
-      response.writeHead(error.code === "ENOENT" ? 404 : 500, { "content-type": "text/plain; charset=utf-8" });
-      response.end(error.code === "ENOENT" ? "Not found" : "Something went wrong");
+      if (response.headersSent) return response.destroy(error);
+      const status = error.code === "ENOENT" ? 404 : error.statusCode || 500;
+      response.writeHead(status, { "content-type": "text/plain; charset=utf-8" });
+      response.end(status === 404 ? "Not found" : "Something went wrong");
     }
   });
   app.startEnrichment = startEnrichment;

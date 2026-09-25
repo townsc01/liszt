@@ -90,22 +90,36 @@ test("manual refresh returns while Sxyprn matching continues", async () => {
   });
 });
 
-test("video endpoint resolves a fresh stream only for a linked scene", async () => {
+test("video endpoint warms and caches a stream, then proxies range requests", async () => {
   const directory = await mkdtemp(join(tmpdir(), "liszt-server-video-"));
   const path = join(directory, "catalogue.json");
   const postUrl = "https://sxyprn.com/post/6ab5422fa84b6.html";
   let calls = 0;
+  const upstreamRanges = [];
   try {
     await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", sxyprnUrls: [postUrl] }] }));
-    await withServer({ cataloguePath: path, videoDetails: async ({ url }) => { calls++; assert.equal(url, postUrl); return { url, streamUrl: "https://sxyprn.com/cdn8/fresh-token" }; } }, async (origin) => {
-      const response = await fetch(`${origin}/api/video?scene=studio%3A1`);
-      assert.equal(response.status, 200);
+    await withServer({
+      cataloguePath: path,
+      videoDetails: async ({ url }) => { calls++; assert.equal(url, postUrl); return { url, streamUrl: "https://sxyprn.com/cdn8/fresh-token" }; },
+      fetchVideo: async (_url, options) => {
+        upstreamRanges.push(options.headers.range);
+        return new Response("video bytes", { status: 206, headers: { "content-type": "video/mp4", "content-range": "bytes 100-110/1000", "accept-ranges": "bytes" } });
+      },
+    }, async (origin) => {
+      const resolved = await fetch(`${origin}/api/video/resolve?scene=studio%3A1`);
+      assert.equal(resolved.status, 204);
+      const response = await fetch(`${origin}/api/video?scene=studio%3A1`, { headers: { range: "bytes=100-" } });
+      assert.equal(response.status, 206);
+      assert.equal(response.headers.get("content-type"), "video/mp4");
+      assert.equal(response.headers.get("content-range"), "bytes 100-110/1000");
+      assert.equal(response.headers.get("accept-ranges"), "bytes");
       assert.equal(response.headers.get("cache-control"), "no-store");
-      assert.deepEqual(await response.json(), { url: "https://sxyprn.com/cdn8/fresh-token" });
+      assert.equal(await response.text(), "video bytes");
       const missing = await fetch(`${origin}/api/video?scene=studio%3A2`);
       assert.equal(missing.status, 404);
     });
     assert.equal(calls, 1);
+    assert.deepEqual(upstreamRanges, ["bytes=100-"]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -119,7 +133,7 @@ test("video endpoint rejects an off-site stream returned by the extractor", asyn
     await writeFile(path, JSON.stringify({ scenes: [{ id: "studio:1", sxyprnUrls: [postUrl] }] }));
     await withServer({ cataloguePath: path, videoDetails: async ({ url }) => ({ url, streamUrl: "https://evil.example/video.mp4" }) }, async (origin) => {
       const response = await fetch(`${origin}/api/video?scene=studio%3A1`);
-      assert.equal(response.status, 500);
+      assert.equal(response.status, 502);
     });
   } finally {
     await rm(directory, { recursive: true, force: true });

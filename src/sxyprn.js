@@ -166,20 +166,16 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
 }
 
 export async function enrichStoredCatalogue(path, { lookup = createSxyprnLookup(), days = 14, shouldContinue = () => true, onProgress = () => {} } = {}) {
-  const initial = await readStore(path);
-  for (const entry of initial.scenes || []) {
+  const catalogue = await readStore(path);
+  let changed = false;
+  for (let index = 0; index < (catalogue.scenes || []).length; index++) {
     if (!shouldContinue()) break;
-    const current = await readStore(path);
-    const index = current.scenes?.findIndex((scene) => scene.id === entry.id) ?? -1;
-    if (index < 0) continue;
-    const scene = current.scenes[index];
+    const scene = catalogue.scenes[index];
     const [updated] = await enrichSxyprnLinks([scene], [scene], lookup, { days });
     if (JSON.stringify(updated) === JSON.stringify(scene) || !shouldContinue()) continue;
-    const latest = await readStore(path);
-    const latestIndex = latest.scenes?.findIndex((item) => item.id === scene.id && item.title === scene.title) ?? -1;
-    if (latestIndex < 0) continue;
-    latest.scenes[latestIndex] = updated;
-    await writeStore(path, latest);
+    catalogue.scenes[index] = updated;
+    changed = true;
     onProgress(updated);
   }
+  if (changed && shouldContinue()) await writeStore(path, catalogue);
 }
