@@ -13,6 +13,59 @@ export const STUDIO_SITE_RECIPES = Object.freeze({
   },
 });
 
+// Allowlist of permitted studio hosts derived from STUDIO_SITE_RECIPES
+const ALLOWED_HOSTS = Object.freeze(new Set(Object.keys(STUDIO_SITE_RECIPES).map((h) => h.toLowerCase())));
+
+/**
+ * Check if a hostname is a private, reserved, or loopback IP address.
+ * Returns true if the hostname should be blocked.
+ */
+function isPrivateOrReservedHost(hostname) {
+  try {
+    // Check for IP address format (IPv4)
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipv4Regex.test(hostname)) {
+      const parts = hostname.split(".").map((n) => Number(n));
+      // 10.0.0.0/8
+      if (parts[0] === 10) return true;
+      // 172.16.0.0/12
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+      // 192.168.0.0/16
+      if (parts[0] === 192 && parts[1] === 168) return true;
+      // 127.0.0.0/8 (localhost)
+      if (parts[0] === 127) return true;
+      // 169.254.0.0/16 (link-local)
+      if (parts[0] === 169 && parts[1] === 254) return true;
+      // 0.0.0.0/8
+      if (parts[0] === 0) return true;
+      // 224.0.0.0/4 (multicast)
+      if (parts[0] >= 224 && parts[0] <= 239) return true;
+      // 240.0.0.0/4 (reserved)
+      if (parts[0] >= 240) return true;
+    }
+    // Check for localhost and other reserved hostnames
+    if (hostname === "localhost" || hostname === "localhost.localdomain") return true;
+    // Check for IPv6 loopback and link-local (simplified check)
+    if (hostname === "::1" || hostname.startsWith("fe80:")) return true;
+    return false;
+  } catch {
+    // If parsing fails, reject for safety
+    return true;
+  }
+}
+
+/**
+ * Validate a URL against the allowlist and private/reserved address checks.
+ * Returns true if the URL is safe to fetch.
+ */
+function isUrlAllowed(url) {
+  if (!/^https?:$/.test(url.protocol)) return false;
+  const hostname = url.hostname.toLowerCase();
+  if (isPrivateOrReservedHost(hostname)) return false;
+  if (!ALLOWED_HOSTS.has(hostname)) return false;
+  return true;
+}
+
 export function parseIsoDuration(value) {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) return Math.round(value);
   const text = String(value || "").trim();
@@ -31,7 +84,7 @@ export function parseIsoDuration(value) {
 }
 
 function cleanText(value) {
-  return String(value || "").replace(/&amp;/gi, "&").replace(/&#(?:39|x27);/gi, "'").replace(/&quot;/gi, '"').trim();
+  return String(value || "").replace(/&/gi, "&").replace(/&#(?:39|x27);/gi, "'").replace(/"/gi, '"').trim();
 }
 
 function names(value) {
@@ -95,17 +148,48 @@ export async function scrapeStudioSite(scene, { fetchImpl = fetch } = {}) {
   if (!scene?.releaseUrl) return { metadataPoor: true };
   let url;
   try { url = new URL(scene.releaseUrl); } catch { return { metadataPoor: true }; }
-  if (!/^https?:$/.test(url.protocol)) return { metadataPoor: true };
-  try {
-    const response = await fetchImpl(url, { headers: { accept: "text/html,application/xhtml+xml", "user-agent": USER_AGENT }, redirect: "follow" });
-    if (!response.ok) return { metadataPoor: true, studioSiteStatus: response.status };
-    const metadata = extractStudioMetadata(await response.text(), response.url || url.href);
-    if (!Object.keys(metadata).length) return { metadataPoor: true };
-    const fields = Object.keys(metadata);
-    return { ...metadata, metadataPoor: false, fieldProvenance: Object.fromEntries(fields.map((field) => [field, "studio-site"])) };
-  } catch {
-    return { metadataPoor: true };
+  if (!isUrlAllowed(url)) return { metadataPoor: true };
+  
+  // Follow redirects manually with validation at each step
+  const maxRedirects = 10;
+  let currentUrl = url;
+  let finalResponse = null;
+  
+  for (let i = 0; i < maxRedirects; i++) {
+    try {
+      const response = await fetchImpl(currentUrl, { 
+        headers: { accept: "text/html,application/xhtml+xml", "user-agent": USER_AGENT }, 
+        redirect: "manual" 
+      });
+      
+      if (response.status === 301 || response.status === 302 || response.status === 303 || response.status === 307 || response.status === 308) {
+        const location = response.headers.get("location");
+        if (!location) break;
+        try {
+          const nextUrl = new URL(location, currentUrl);
+          if (!isUrlAllowed(nextUrl)) return { metadataPoor: true };
+          currentUrl = nextUrl;
+          continue;
+        } catch {
+          return { metadataPoor: true };
+        }
+      }
+      
+      finalResponse = response;
+      break;
+    } catch {
+      return { metadataPoor: true };
+    }
   }
+  
+  if (!finalResponse || !finalResponse.ok) {
+    return { metadataPoor: true, studioSiteStatus: finalResponse?.status };
+  }
+  
+  const metadata = extractStudioMetadata(await finalResponse.text(), finalResponse.url || currentUrl.href);
+  if (!Object.keys(metadata).length) return { metadataPoor: true };
+  const fields = Object.keys(metadata);
+  return { ...metadata, metadataPoor: false, fieldProvenance: Object.fromEntries(fields.map((field) => [field, "studio-site"])) };
 }
 
 export async function enrichFromStudioSite(scene, options) {
