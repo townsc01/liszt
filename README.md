@@ -2,7 +2,7 @@
 
 > **Content note:** personal adult-content catalogue project - specs and fixtures contain adult titles.
 
-**[Roadmap](https://github.com/townsc01/liszt/milestones)** (milestones - status + build order) - **[ROADMAP.md](ROADMAP.md)** (the map, linked).
+**[Roadmap](https://github.com/townsc01/liszt/milestones)** (milestones - status + build order) - **[ROADMAP.md](ROADMAP.md)** (the map, linked) - **[Discussions](https://github.com/townsc01/liszt/discussions)** (Announcements, Q&A, Ideas, Show and Tell)
 
 Liszt is a personal hobby project for keeping a rolling 90-day watchlist of scenes released by selected studios. The aim is a useful, reasonably complete, accurate, regularly updated list showing each scene's studio, title, release date, performers, thumbnail, and link to its release page.
 
