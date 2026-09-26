@@ -41,7 +41,7 @@ async function fetchJulesJordanAnalScenes({
   days = 90,
   fetchImpl = fetch,
   apiKey = process.env.TPDB_API_KEY,
-  siteName = "Jules Jordan Video",
+  siteName = "Jules Jordan",
   sourceUrl = `${API_BASE_URL}/scenes`,
 } = {}) {
   if (!apiKey) throw new Error("TPDB_API_KEY is not configured");
