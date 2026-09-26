@@ -39,7 +39,7 @@ export function parseListing(html) {
   return listings;
 }
 
-function parseDate(dateStr) {
+export function parseDate(dateStr) {
   const match = dateStr.match(/([A-Za-z]+) (\d{1,2}), (\d{4})/);
   if (!match) return undefined;
   const [, month, day, year] = match;
@@ -106,7 +106,7 @@ async function fetchText(url, fetchImpl) {
   throw new Error(`Jules Jordan fetch failed for ${url} after 3 attempts: ${lastError.message}`, { cause: lastError });
 }
 
-function parseIsoDuration(value) {
+export function parseIsoDuration(value) {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) return Math.round(value);
   const text = String(value || "").trim();
   const iso = text.match(/^P(?:(\d+(?:\.\d+)?)D)?T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/i);
