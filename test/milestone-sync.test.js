@@ -44,12 +44,20 @@ function runScript() {
 
 const script = runScript();
 
-function harness({ labels, milestoneNumber = null, milestones = MILESTONES }) {
+function harness({ labels, milestoneNumber = null, milestones = MILESTONES, laterIssue = null }) {
   const dir = mkdtempSync(join(tmpdir(), "milestone-sync-"));
   const bin = join(dir, "bin");
   mkdirSync(bin);
   const log = join(dir, "calls.log");
   const realJq = execFileSync("bash", ["-c", "command -v jq"]).toString().trim();
+
+  const issueFor = (labelNames, milestone) => ({
+    number: 7,
+    labels: labelNames.map((name) => ({ name })),
+    milestone: milestone ? { number: milestone } : null,
+  });
+  const firstIssue = issueFor(labels, milestoneNumber);
+  const secondIssue = laterIssue ? issueFor(laterIssue.labels, laterIssue.milestoneNumber) : firstIssue;
 
   writeFileSync(join(bin, "jq"), `#!/usr/bin/env bash\nexec ${realJq} "$@"\n`);
   writeFileSync(
@@ -62,7 +70,14 @@ for arg in "$@"; do
 done
 case "$endpoint" in
   *"/milestones?"*) cat "$GH_MILESTONES_FILE" ;;
-  *"/issues/"*) cat "$GH_ISSUE_FILE" ;;
+  *"/issues/"*)
+    # The issue is read twice: before planning and again just before a write.
+    n=0
+    [ -f "$GH_READ_COUNT" ] && n=$(cat "$GH_READ_COUNT")
+    n=$((n + 1))
+    echo "$n" > "$GH_READ_COUNT"
+    if [ "$n" -ge 2 ]; then cat "$GH_LATER_ISSUE_FILE"; else cat "$GH_ISSUE_FILE"; fi
+    ;;
   *) echo "unexpected endpoint: $endpoint" >&2; exit 3 ;;
 esac
 `,
@@ -72,11 +87,11 @@ esac
 
   const milestonesFile = join(dir, "milestones.json");
   const issueFile = join(dir, "issue.json");
+  const laterIssueFile = join(dir, "issue-later.json");
+  const readCount = join(dir, "reads");
   writeFileSync(milestonesFile, JSON.stringify(milestones.map((m) => ({ ...m, state: "open" }))));
-  writeFileSync(
-    issueFile,
-    JSON.stringify({ number: 7, labels: labels.map((name) => ({ name })), milestone: milestoneNumber ? { number: milestoneNumber } : null }),
-  );
+  writeFileSync(issueFile, JSON.stringify(firstIssue));
+  writeFileSync(laterIssueFile, JSON.stringify(secondIssue));
 
   const scriptFile = join(dir, "script.sh");
   writeFileSync(scriptFile, script);
@@ -93,6 +108,8 @@ esac
         GH_CALL_LOG: log,
         GH_MILESTONES_FILE: milestonesFile,
         GH_ISSUE_FILE: issueFile,
+        GH_LATER_ISSUE_FILE: laterIssueFile,
+        GH_READ_COUNT: readCount,
       },
     });
     const calls = readFileSync(log, "utf8").split("\n").filter(Boolean);
@@ -113,6 +130,12 @@ test("the job writes issues only", () => {
   const keys = permissions.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => line.split(":")[0]);
   assert.deepEqual(keys, ["issues"]);
   assert.match(permissions, /issues:\s*write/);
+});
+
+test("runs are serialized per issue so rapid label events cannot interleave", () => {
+  const concurrency = blockAfter("concurrency");
+  assert.match(concurrency, /group:\s*milestone-sync-issue-\$\{\{\s*github\.event\.issue\.number\s*\}\}/);
+  assert.match(concurrency, /cancel-in-progress:\s*false/);
 });
 
 test("a recognized phase label sets the milestone resolved by title, not a hardcoded number", () => {
@@ -160,4 +183,22 @@ test("a missing target milestone leaves the issue untouched instead of failing",
   const { writes, stdout } = harness({ labels: ["phase: playback UX"], milestones: MILESTONES.filter((m) => m.number !== 32) });
   assert.equal(writes.length, 0);
   assert.match(stdout, /not found/);
+});
+
+test("an assignment made while the run is in flight still wins", () => {
+  const { writes, stdout } = harness({
+    labels: ["phase: playback UX"],
+    laterIssue: { labels: ["phase: playback UX"], milestoneNumber: 9 },
+  });
+  assert.equal(writes.length, 0, "the fresh read sees the manual milestone and no write happens");
+  assert.match(stdout, /state changed while running/);
+});
+
+test("a label removed while the run is in flight is honored too", () => {
+  const { writes, stdout } = harness({
+    labels: ["phase: playback UX"],
+    laterIssue: { labels: ["instinct"], milestoneNumber: null },
+  });
+  assert.equal(writes.length, 0);
+  assert.match(stdout, /state changed while running/);
 });
