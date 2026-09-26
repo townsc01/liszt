@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { DEFAULT_FETCH_CONCURRENCY } from "../src/concurrency.js";
 import { enrichSxyprnLinks, enrichStoredCatalogue } from "../src/sxyprn.js";
 import { createCatalogueEnricher } from "../src/server.js";
-import { REVERIFY_SLICE_SIZE, REVERIFY_STRIKE_LIMIT, createLinkVerifier, reverifyLinks, reverifyStoredCatalogue, selectReverifySlice } from "../src/reverify.js";
+import { REVERIFY_SLICE_SIZE, REVERIFY_STRIKE_LIMIT, VERIFY_TIMEOUT_MS, createLinkVerifier, reverifyLinks, reverifyStoredCatalogue, selectReverifySlice } from "../src/reverify.js";
 
 // Prove the default bound regardless of the developer's environment.
 delete process.env.LISZT_FETCH_CONCURRENCY;
@@ -251,6 +251,55 @@ test("dead-link history survives the next sync rebuilding the scene from its ada
   assert.deepEqual(rebuilt.deadVideoUrls, [dead], "history is additive state the adapter cannot supply");
   const [withLookup] = await enrichSxyprnLinks([fresh], [prior], async () => [], { now: new Date("2026-09-26T00:00:00Z") });
   assert.deepEqual(withLookup.deadVideoUrls, [dead], "and survives a fresh resolution pass too");
+});
+
+test("a stalled verify times out and is inconclusive instead of hanging the shared pool", async () => {
+  // A connection that never settles: only the abort signal ends it, exactly like a stalled socket.
+  const stalled = (url, { signal } = {}) => new Promise((resolve, reject) => {
+    signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+  });
+  const verify = createLinkVerifier({ fetchImpl: stalled, timeoutMs: 20 });
+  const sxyprnOutcome = await verify(sxyprn(hex(20)));
+  assert.equal(sxyprnOutcome.status, "inconclusive", "an sxyprn stall is not proof of deletion");
+  assert.match(sxyprnOutcome.reason, /abort/i);
+  const epornerOutcome = await verify(eporner("ABC999"));
+  assert.equal(epornerOutcome.status, "inconclusive", "an eporner stall is not proof of deletion");
+  assert.match(epornerOutcome.reason, /abort/i);
+});
+
+test("a stalled response body also aborts and stays inconclusive", async () => {
+  // Headers arrive, then the body never does - the timeout must cover the body read too.
+  const stalledBody = async (url, { signal } = {}) => ({
+    status: 200,
+    ok: true,
+    json: () => new Promise((resolve, reject) => signal?.addEventListener("abort", () => reject(signal.reason), { once: true })),
+  });
+  const outcome = await createLinkVerifier({ fetchImpl: stalledBody, timeoutMs: 20 })(eporner("ABC101"));
+  assert.equal(outcome.status, "inconclusive", "a stalled body is not proof of deletion");
+  assert.match(outcome.reason, /abort/i);
+});
+
+test("the verifier passes a bounded timeout signal on every fetch", async () => {
+  assert.equal(VERIFY_TIMEOUT_MS, 15_000);
+  const seen = [];
+  const verify = createLinkVerifier({ fetchImpl: async (url, options = {}) => { seen.push(options.signal); return { status: 404, ok: false }; } });
+  await verify(sxyprn(hex(21)));
+  await verify(eporner("ABC100"));
+  assert.equal(seen.length, 2, "both sources fetch");
+  assert.ok(seen.every((signal) => signal instanceof AbortSignal), "each fetch carries an abort signal");
+});
+
+test("a dead link is not re-added by a lookup after the scene re-enters resolution", async () => {
+  const url = sxyprn(hex(22)).url;
+  const dead = { source: "sxyprn", url, embedUrl: null, verifiedAt: VERIFIED_AT,
+    deadAt: "2026-09-26T00:00:00.000Z", deadReason: "sxyprn watch page returned HTTP 404" };
+  // The last live link died, so videoCheckedAt was cleared and the scene re-enters resolution.
+  const prior = scene("studio:1", [], { deadVideoUrls: [dead] });
+  const fresh = scene("studio:1");
+  // The lookup offers the very URL that was proven dead.
+  const [resolved] = await enrichSxyprnLinks([fresh], [prior], async () => [url], { now: new Date("2026-09-27T00:00:00Z") });
+  assert.equal(resolved.videoUrls, undefined, "videoUrls stays live-links-only");
+  assert.deepEqual(resolved.deadVideoUrls, [dead], "the dead link stays in the dead array");
 });
 
 test("the strike limit is two, so a single definitive failure never kills a link", async () => {

@@ -10,6 +10,8 @@ const USER_AGENT = "Mozilla/5.0 (compatible; Liszt link re-verify; +https://gith
 export const REVERIFY_SLICE_SIZE = 25;
 /** Consecutive definitive failures required before a link is marked dead. */
 export const REVERIFY_STRIKE_LIMIT = 2;
+/** A stalled verify must not hold the shared pool open: bound every fetch and treat the abort as inconclusive. */
+export const VERIFY_TIMEOUT_MS = 15_000;
 
 function linkUrl(link) {
   return link.source === "sxyprn" ? validSxyprnUrl(link.url) : link.source === "eporner" && validEpornerUrl(link.url);
@@ -111,12 +113,12 @@ export async function reverifyLinks(scenes, { verify, now = new Date(), limit = 
  * 404/410, or an eporner `video/id` lookup that returns no record. Every other answer -
  * timeout, 403 anti-bot wall, 5xx, malformed body - is inconclusive.
  */
-export function createLinkVerifier({ fetchImpl = fetch } = {}) {
+export function createLinkVerifier({ fetchImpl = fetch, timeoutMs = VERIFY_TIMEOUT_MS } = {}) {
   return async (link) => {
     if (link.source === "sxyprn") {
       let response;
       try {
-        response = await fetchImpl(link.url, { headers: { "user-agent": USER_AGENT, accept: "text/html" } });
+        response = await fetchImpl(link.url, { headers: { "user-agent": USER_AGENT, accept: "text/html" }, signal: AbortSignal.timeout(timeoutMs) });
       } catch (error) {
         return { status: "inconclusive", reason: error.message };
       }
@@ -132,7 +134,7 @@ export function createLinkVerifier({ fetchImpl = fetch } = {}) {
       url.searchParams.set("format", "json");
       let response;
       try {
-        response = await fetchImpl(url, { headers: { accept: "application/json" } });
+        response = await fetchImpl(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(timeoutMs) });
       } catch (error) {
         return { status: "inconclusive", reason: error.message };
       }
