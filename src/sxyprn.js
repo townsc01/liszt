@@ -175,23 +175,29 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
       continue;
     }
     const prior = byId.get(scene.id) || byReleaseUrl.get(scene.releaseUrl);
+    // A source refresh rebuilds the record from the adapter, so carry the dead-link history
+    // forward - it is additive state the adapters know nothing about.
+    const priorDead = Array.isArray(prior?.deadVideoUrls) && prior.deadVideoUrls.length ? { deadVideoUrls: prior.deadVideoUrls } : {};
+    // A scene whose last live link died re-enters resolution, so the lookup can offer that same
+    // URL again. Keep it dead: videoUrls must stay live-links-only and the dead array keeps it.
+    const deadUrls = new Set((prior?.deadVideoUrls || []).map((link) => link.url));
     const canonical = storedCanonicalNames(prior);
     if (canonical) {
       scene.performers = [...canonical];
       scene.studioSiteNamingVersion = prior.studioSiteNamingVersion;
     }
     const same = unchanged(scene, prior);
-    const priorLinks = same ? ([...(prior.videoUrls || []), ...legacyLinks(prior)]).filter((link, index, links) =>
+    const priorLinks = same ? ([...(prior.videoUrls || []), ...legacyLinks(prior)].filter((link) => !deadUrls.has(link.url))).filter((link, index, links) =>
       ((link.source === "sxyprn" && validSxyprnUrl(link.url)) || link.source === "eporner") && links.findIndex((item) => item.source === link.source && item.url === link.url) === index) : [];
     const checkedAt = same ? Date.parse(prior.videoCheckedAt || prior.sxyprnCheckedAt) : NaN;
-    const retained = { ...scene, ...(priorLinks.length ? { videoUrls: priorLinks } : {}),
+    const retained = { ...scene, ...priorDead, ...(priorLinks.length ? { videoUrls: priorLinks } : {}),
       ...(Number.isFinite(checkedAt) ? { videoCheckedAt: prior.videoCheckedAt || prior.sxyprnCheckedAt } : {}) };
     if (!lookup || scene.releaseDate < cutoff || (Number.isFinite(checkedAt) && now.getTime() >= checkedAt && now.getTime() - checkedAt < DAY_MS)) {
       output.push(retained);
       continue;
     }
     try {
-      const urls = [...new Set(await lookup(scene))].filter(validSxyprnUrl).slice(0, 2);
+      const urls = [...new Set(await lookup(scene))].filter((url) => validSxyprnUrl(url) && !deadUrls.has(url)).slice(0, 2);
       const otherLinks = priorLinks.filter((link) => link.source !== "sxyprn");
       let working = scene;
       let scraped = false;
@@ -200,7 +206,7 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
         scraped = true;
       }
       const links = urls.length ? [...urls.map((url) => ({ source: "sxyprn", url, embedUrl: null, verifiedAt: now.toISOString() })), ...otherLinks] : priorLinks;
-      output.push({ ...working, ...(links.length ? { videoUrls: links } : {}), videoCheckedAt: now.toISOString(),
+      output.push({ ...working, ...priorDead, ...(links.length ? { videoUrls: links } : {}), videoCheckedAt: now.toISOString(),
         ...(scraped ? { studioSiteNamingVersion: namingVersion(working) } : {}) });
     } catch {
       output.push(retained);
