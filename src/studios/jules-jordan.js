@@ -18,15 +18,21 @@ const decodeHtml = (value = "") => value
 export function parseListing(html) {
   const listings = [];
   
-  // Find all scene links in jj-content-card divs
-  const linkRegex = /<a href="([^"]*\/scenes\/[^"]+_vids\.html)" class="jj-card-thumb"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?alt="([^"]+)"[\s\S]*?<h2 class="jj-card-title">([^<]+)<\/h2>[\s\S]*?<div class="jj-card-date">Released: ([^<]+)<\/div>/g;
+  // Split by card divs and process each card individually
+  const cardHtmls = html.split('<div class="jj-content-card">').slice(1);
   
-  let match;
-  while ((match = linkRegex.exec(html)) !== null) {
-    const [, releaseUrl, thumbnailUrl, , title, dateStr] = match;
-    const absoluteUrl = new URL(decodeHtml(releaseUrl), BASE_URL).href;
-    const releaseDate = parseDate(dateStr.trim());
-    listings.push({ releaseUrl: absoluteUrl, releaseDate, thumbnailUrl: decodeHtml(thumbnailUrl) });
+  for (const cardHtml of cardHtmls) {
+    const urlMatch = cardHtml.match(/<a href="([^"]*\/scenes\/[^"]+_vids\.html)" class="jj-card-thumb"/);
+    const thumbMatch = cardHtml.match(/<img[^>]+src="([^"]+)"/);
+    const titleMatch = cardHtml.match(/<h2 class="jj-card-title">([^<]+)<\/h2>/);
+    const dateMatch = cardHtml.match(/<div class="jj-card-date">Released: ([^<]+)<\/div>/);
+    
+    if (urlMatch) {
+      const releaseUrl = new URL(decodeHtml(urlMatch[1]), BASE_URL).href;
+      const releaseDate = dateMatch ? parseDate(dateMatch[1].trim()) : undefined;
+      const thumbnailUrl = thumbMatch ? decodeHtml(thumbMatch[1]) : "";
+      listings.push({ releaseUrl, releaseDate, thumbnailUrl });
+    }
   }
   
   if (!listings.length) throw new Error("Jules Jordan listing is missing video cards");
