@@ -96,13 +96,21 @@ function names(value) {
   }).map(cleanText).filter(Boolean))];
 }
 
+const VIDEO_LD_TYPES = new Set(["videoobject", "mediaobject", "movie", "tvepisode", "clip"]);
+
+function isVideoEntity(type) {
+  const types = Array.isArray(type) ? type : [type];
+  return types.some((entry) => VIDEO_LD_TYPES.has(String(entry || "").toLowerCase()));
+}
+
 function visit(value, output) {
   if (Array.isArray(value)) return value.forEach((item) => visit(item, output));
   if (!value || typeof value !== "object") return;
-  const type = String(value["@type"] || "").toLowerCase();
-  if (!output.durationSec && value.duration) output.durationSec = parseIsoDuration(value.duration);
-  if (!output.releaseDate) output.releaseDate = value.datePublished || value.uploadDate || value.releaseDate;
-  if (!output.performers?.length) output.performers = names(value.actor || value.actors || value.performer || value.performers || (type === "videoobject" ? value.author : null));
+  if (isVideoEntity(value["@type"])) {
+    if (!output.durationSec && value.duration) output.durationSec = parseIsoDuration(value.duration);
+    if (!output.releaseDate) output.releaseDate = value.datePublished || value.uploadDate || value.releaseDate;
+    if (!output.performers?.length) output.performers = names(value.actor || value.actors || value.performer || value.performers || value.author);
+  }
   for (const child of Object.values(value)) if (child && typeof child === "object") visit(child, output);
 }
 

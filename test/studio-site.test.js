@@ -18,6 +18,28 @@ test("studio metadata prefers structured data and normalises ISO durations", () 
   });
 });
 
+test("JSON-LD extraction takes the video entity's fields when a page entity comes first in @graph", () => {
+  const html = `<script type="application/ld+json">{
+    "@context":"https://schema.org",
+    "@graph":[
+      {"@type":"WebPage","datePublished":"2026-01-01T00:00:00Z","duration":"PT1M","actor":[{"@type":"Person","name":"Page Author"}]},
+      {"@type":"VideoObject","datePublished":"2026-09-25T00:00:00Z","duration":"PT30M","actor":[{"@type":"Person","name":"Scene Performer"}]}
+    ]
+  }</script>`;
+  assert.deepEqual(extractStudioMetadata(html, "https://sexlikereal.com/scenes/graph"), {
+    durationSec: 1800,
+    releaseDate: "2026-09-25",
+    performers: ["Scene Performer"],
+  });
+});
+
+test("JSON-LD extraction does not adopt a page entity's date as the scene release date", () => {
+  const html = `<script type="application/ld+json">{
+    "@type":"WebPage","datePublished":"2026-01-01T00:00:00Z","name":"Studio site"
+  }</script>`;
+  assert.deepEqual(extractStudioMetadata(html, "https://analvids.com/video/one"), {});
+});
+
 test("studio scraper uses a browser-like request and records field provenance", async () => {
   let request;
   const scene = { releaseUrl: "https://analvids.com/video/one", releaseDate: "2026-09-20", performers: [] };
