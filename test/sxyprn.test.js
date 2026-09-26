@@ -164,6 +164,29 @@ test("the user-confirmed Naty Heat scene retains both Sxyprn uploads", async () 
   assert.match(renderSceneLinks(linked), /Sxyprn 2 ↗/);
 });
 
+test("sync preserves a scraped canonical name across a fresh TPDB poll", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "liszt-naming-sync-"));
+  const path = join(directory, "catalogue.json");
+  const canonical = ["Studio Name"];
+  const stored = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio",
+    title: "A sufficiently descriptive scene title", releaseDate: "2026-09-23",
+    releaseUrl: "https://analvids.com/one", performers: [...canonical],
+    studioSiteNamingVersion: JSON.stringify(canonical), fieldProvenance: { performers: "studio-site" } };
+  const adapter = { id: "studio", name: "Studio", authority: { name: "Test", url: "https://source.example" },
+    fetchScenes: async () => ({ scenes: [{ ...stored, id: undefined, performers: ["TPDB Alias"], studioSiteNamingVersion: undefined, fieldProvenance: undefined }], verifiedEmpty: false }) };
+  try {
+    await writeFile(path, JSON.stringify({ scenes: [stored], studios: [] }));
+    const result = await sync({ now: new Date("2026-09-26T12:00:00Z"), paths: [path], adapters: [adapter] });
+    assert.deepEqual(result.scenes[0].performers, canonical);
+    assert.equal(result.scenes[0].studioSiteNamingVersion, JSON.stringify(canonical));
+    const queries = [];
+    await enrichStoredCatalogue(path, { lookup: async (scene) => { queries.push([...scene.performers]); return []; } });
+    assert.deepEqual(queries, [canonical]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("studio sync remains available when Sxyprn is not available", async () => {
   const directory = await mkdtemp(join(tmpdir(), "liszt-sxyprn-sync-"));
   const path = join(directory, "catalogue.json");
