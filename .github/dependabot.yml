@@ -24,17 +24,9 @@ updates:
       - dependency-type: "direct"
       - dependency-type: "indirect"
     ignore:
-      - dependency-type: "direct"
-        update-type: "version-update:semver-major"
-      - dependency-type: "indirect"
-        update-type: "version-update:semver-major"
-    auto-merge:
-      - match:
-          update-type: "patch"
-        commit-message: "chore(deps): merge dependabot patch update for {{dependency-name}}"
-      - match:
-          update-type: "minor"
-        commit-message: "chore(deps): merge dependabot minor update for {{dependency-name}}"
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
