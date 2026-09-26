@@ -1,5 +1,6 @@
 import { renderSceneLinks } from "./scene-links.js";
 import { topVideoLink } from "./scene-video.js";
+import { classifySourceStatus, renderSourceHealth, renderSourceHealthSummary, sourceStateLabel } from "./source-health.js";
 
 const list = document.querySelector("#list");
 const empty = document.querySelector("#empty");
@@ -52,10 +53,8 @@ function renderSources() {
   }
   sourcesList.innerHTML = sourceStatuses.map((item) => {
     const authority = item.authority || {};
-    const updated = item.lastSuccessfulRefresh ? new Date(item.lastSuccessfulRefresh).toLocaleString("en", { dateStyle: "medium", timeStyle: "short" }) : "Not yet refreshed";
-    const releaseCount = scenes.filter((scene) => scene.studioId === item.id).length;
     const sourceUrl = /^https?:\/\//i.test(authority.url || "") ? authority.url : "#";
-    return `<article class="source-item"><div class="source-item__status ${item.error ? "source-item__status--error" : ""}" aria-label="${item.error ? "Source has an error" : "Source is available"}"></div><div class="source-item__body"><p class="source-role">${escapeHtml(authority.role || "Catalogue source")}</p><h3>${escapeHtml(item.name)}</h3><p class="source-authority">Provided by ${escapeHtml(authority.name || "Unknown authority")}</p><dl><div><dt>Watchlist records</dt><dd>${releaseCount}</dd></div><div><dt>Last successful refresh</dt><dd>${escapeHtml(updated)}</dd></div></dl>${item.error ? `<p class="source-error">${escapeHtml(item.error)}</p>` : ""}</div><a class="source-open" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span>Open catalogue</span> ↗</a></article>`;
+    return `<article class="source-item"><div class="source-item__status source-item__status--${classifySourceStatus(item.error)}" aria-label="${escapeHtml(sourceStateLabel(item.error))}"></div><div class="source-item__body"><p class="source-role">${escapeHtml(authority.role || "Catalogue source")}</p><h3>${escapeHtml(item.name)}</h3><p class="source-authority">Provided by ${escapeHtml(authority.name || "Unknown authority")}</p>${renderSourceHealth(item, scenes)}</div><a class="source-open" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span>Open catalogue</span> ↗</a></article>`;
   }).join("");
 }
 
@@ -102,7 +101,7 @@ function applyCatalogue(data) {
   const requestedStudio = new URL(location.href).searchParams.get("studio");
   const desiredStudio = selectedStudio !== "all" ? selectedStudio : requestedStudio;
   if ([...studio.options].some((option) => option.value === desiredStudio)) studio.value = desiredStudio;
-  notices.innerHTML = statuses.filter((item) => item.error).map((item) => `<div class="notice"><strong>${escapeHtml(item.name)} refresh failed.</strong> Showing retained data from ${item.lastSuccessfulRefresh ? escapeHtml(new Date(item.lastSuccessfulRefresh).toLocaleString()) : "the last available catalogue"}. ${escapeHtml(item.error)}</div>`).join("") +
+  notices.innerHTML = renderSourceHealthSummary(statuses) +
     (data.enrichmentPending ? '<div class="notice">Checking playback sources for matching videos. New links will appear here as they are verified.</div>' : "");
   lastChecked.textContent = data.lastChecked ? new Date(data.lastChecked).toLocaleString("en", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Not yet checked";
   renderSources();
