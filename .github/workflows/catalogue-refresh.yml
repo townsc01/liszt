@@ -19,6 +19,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run sync
+        env:
+          TPDB_API_KEY: ${{ secrets.TPDB_API_KEY }}
       # Translation is a background pass, never part of sync. Running it here (and
       # committing its cache below) is what makes translations durable rather than
       # re-derived from the LLM on every cold boot. With no key it is glossary-only.
