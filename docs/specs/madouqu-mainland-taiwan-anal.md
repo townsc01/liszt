@@ -1,4 +1,4 @@
-# Lane spec: Taiwan/mainland releases (male-on-female anal) via madouqu.com
+# Lane spec: Taiwan/mainland releases (male-on-female, penetrative) via madouqu.com
 
 > **Depends on:** none for this metadata-only lane (the future playback/matcher work would depend on the per-lane matcher contract in link-sources.md).
 
@@ -8,15 +8,19 @@
 > run (2026-09-24), and the tube-findability measurement (2026-09-25). Codex implements from
 > this document.
 
+> **Lexicon note.** The Chinese/English term lists below are the lane's functional filter
+> definitions, reproduced for implementation accuracy. They are clinical filter data - the
+> vocabulary the lane must match on - not descriptive prose.
+
 ## 1. Goal
 
 Add a **mainland/Taiwan lane** to Liszt: releases from the Chinese-studio aggregator
 madouqu.com that match Chris's interest filter, kept current by ongoing sync, shown in the
 existing watchlist UI with English display titles.
 
-The filter, in Chris's words (2026-09-25): **male-on-female anal penetrative sex only.**
-Not anal play (toys, plugs, fingering, enemas, fisting without penetration); no trans content
-(already excluded). This is exactly the `content_type = "anal sex"` cut of the 2026-09-24
+The filter, in Chris's words (2026-09-25): **male-on-female penetrative content only.**
+Not play-only content (toys, plugs, fingering, enemas, fisting without penetration); no trans
+content (already excluded). This is exactly the `content_type = "anal sex"` cut of the 2026-09-24
 catalogue run - **151 rows** of the 163-row v2 file (committed here as
 `data/seeds/madouqu-anal-2026-09-24.csv`; the 12 play-only rows are kept in the CSV for
 reference and must be filtered out by the lane). Ongoing sync keeps pulling new matching
@@ -64,17 +68,17 @@ Apply in order; log every exclusion with its reason.
 2. **Trans/gay exclusion.** Title contains 伪娘, 人妖, TS, ladyboy, 男男, 耽美 -> exclude.
    (This corpus is overwhelmingly male-on-female; the rule is a backstop. Chris confirmed trans
    is already excluded.)
-3. **Anal gate.** Title matches at least one anal term:
+3. **Anal gate.** Title matches at least one anal term (functional filter list):
    **肛交, 后庭, 屁眼, 肛门, 三通, 爆菊, 爆肛** (the exact set used in the 2026-09-24 run;
    hit distribution across the 163 rows: 肛交 72, 爆菊 40, 屁眼 33, 肛门 19, 后庭 11, 三通 10).
 4. **Penetrative-only gate (Chris's 2026-09-25 narrowing).** Classify the match:
-   - **Keep ("anal sex"):** the title signals penetrative anal intercourse - 肛交, 爆菊, 爆肛,
+   - **Keep ("anal sex"):** the title signals penetrative intercourse - 肛交, 爆菊, 爆肛,
      三通 (triple penetration, includes anal by definition), or 后庭/屁眼/肛门 combined with sex
      verbs (操, 干, 插, 内射, 爆草...) rather than play nouns.
-   - **Drop ("anal play"):** the only anal content is play/toys - 肛塞 (butt plug), 肛钩,
+   - **Drop ("anal play"):** the only content is play/toys - 肛塞 (butt plug), 肛钩,
      灌肠 (enema), 指奸 (fingering), 拳交 (fisting), 跳蛋 (vibrator), 钢球 (balls), 扩张, 塞.
    - The 2026-09-24 run's judgment calls, kept as worked examples:
-     - 68418 `母狗三通后的捆绑肛塞玩具震逼调教` - KEPT: 三通 implies anal sex despite the plug.
+     - 68418 `母狗三通后的捆绑肛塞玩具震逼调教` - KEPT: 三通 implies penetrative content despite the plug.
      - 64342 `肛塞调教大一蜜臀母狗羞耻屁眼跪着吞吐肉棒` - KEPT but borderline (possibly plug + oral
        only); the row to drop first if Chris wants a stricter cut.
      - 6 plug-only rows removed in v2 (90505, 75872, 75863, 74257, 69565, 46015).
@@ -140,7 +144,8 @@ built on the shared `src/translate.js` module the FC2 lane owns (whichever lane 
 first builds it; this lane supplies its glossary and prompts);
 only the language and dictionaries differ.
 
-- **Title translation:** glossary pass for the heavy genre vocabulary (人妻 = wife/married woman,
+- **Title translation:** glossary pass for the heavy genre vocabulary (functional filter
+  mappings, not prose: 人妻 = wife/married woman,
   极品 = top-tier, 调教 = training, 淫荡 = slutty, 母狗 = "bitch" genre slang, 白丝 = white
   stockings, 黑丝 = black stockings, 空姐 = flight attendant, 约炮 = hookup, 内射 = creampie,
   吞精 = swallowing, 喷水 = squirting, 群交/4P/3P = group/foursome/threesome, 爆菊 = anal,

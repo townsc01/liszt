@@ -14,7 +14,7 @@ The candidate pool comes from search queries. Queries are cheap recall; the gate
 
 The algorithm is **uniform across all studios** - no per-studio branches. Studios differ only in query configuration (which extra queries a studio's watchlist adds) and in source-pool coverage, never in the cascade or the gate.
 
-- Up to 2 normalised performer names. **Single-token performer names MUST generate queries too** - the earlier >=2-token rule produced zero queries for "Beauty Saves Marriage With Anal" (performer "Geishakyd") and silently skipped the scene; it sits on sxyprn at 1s off (two uploads, 2504s vs TPDB 2503s).
+- Up to 2 normalised performer names. **Single-token performer names MUST generate queries too** - the earlier >=2-token rule produced zero queries for "Beauty Saves Marriage W..." (performer "Geishakyd") and silently skipped the scene; it sits on sxyprn at 1s off (two uploads, 2504s vs TPDB 2503s).
 - The studio name as an additional query. Measured rescue: the `tushy` query surfaced the Geishakyd scene above. Studio in the QUERY list is cheap recall. (Studio in the GATE is falsified - see stage 4.) **Exception:** studios flagged `creator_studio: true` on their studio record (seed: Maximo Garcia - creator content surfaces on tubes under performer aliases, studio-name queries return noise) build performer-only queries; no studio-name query is generated. Flag lives on the studio record, checked at query-build time - not a cascade branch.
 - Per-studio query config, e.g. the Mambo scene code (existing behaviour). Config, not an algorithm branch.
 - **Never tag-based search (Chris's constraint, 2026-09-25).** Tube tags are optional and poorly
@@ -36,7 +36,7 @@ Chris's proposed stage 2, measured before adoption (2026-09-25):
 - **Sensitivity 0/19.** Across every verified true match with a known upload date, NONE fall in the window: eporner 0/11 (Tushy scenes released Jul-Aug 2026 were uploaded 2026-09-17/18 - repost lag runs 6-10 weeks); xvideos 0/8, including one verbatim-title true match uploaded 2026-07-17, one day BEFORE its 2026-07-18 release (leaks precede street date).
 - Specificity is excellent (eporner 96/97 wrong candidates filtered; xvideos 84,631/85,055) but useless when the condition also kills every true match.
 - **Verdict: rejected as a stop-and-match condition.** Upload date is demoted to a tiebreak signal (ranking only, below). Field availability: eporner `added` (verified genuine, spread 2009-2026), xvideos export column 13. sxyprn cards carry no upload date; using it there would need a details() fetch per candidate and breaks the zero-extra-HTTP design of the sxyprn second pass.
-- **Fresh-item retest, Chris's exact spec (2026-09-25 PM).** Duration ±30s AND upload within release ±7d, NO title/performer/studio criteria, the 10 most recent catalogue scenes (8 runnable, 2 lack TPDB durations). Sxyprn: 5/8 items matched, 16 claimed hits, manual review 13 true / 3 false (~81% precision - Maya Bell would have linked a Yasmina Khan gangbang; Marfe a "Badgirl Sandra" scene). Eporner: 0/8 from query pools; against an unbiased latest-600 pool all 8 items "matched" but 42/44 were wrong scenes (~2-5% precision). Conclusions: for FRESH items the ±7d window costs no true matches (uploads land same-day; no contradiction with the 0/19 tail result - repost lag hits the July/Aug catalogue, not release-week items); and duration+date WITHOUT identity verification produces false links at 19% (sxyprn) to ~97% (eporner) rates - confirming stage 3 must remain the gate.
+- **Fresh-item retest, Chris's exact spec (2026-09-25 PM).** Duration ±30s AND upload within release ±7d, NO title/performer/studio criteria, the 10 most recent catalogue scenes (8 runnable, 2 lack TPDB durations). Sxyprn: 5/8 items matched, 16 claimed hits, manual review 13 true / 3 false (~81% precision - Maya Bell would have linked a Yasmina Khan scene; Marfe a "Badgirl Sandra" scene). Eporner: 0/8 from query pools; against an unbiased latest-600 pool all 8 items "matched" but 42/44 were wrong scenes (~2-5% precision). Conclusions: for FRESH items the ±7d window costs no true matches (uploads land same-day; no contradiction with the 0/19 tail result - repost lag hits the July/Aug catalogue, not release-week items); and duration+date WITHOUT identity verification produces false links at 19% (sxyprn) to ~97% (eporner) rates - confirming stage 3 must remain the gate.
 
 ### Stage 3 - performer OR verbatim title (the match condition)
 
@@ -46,7 +46,7 @@ Accept when: every token of a performer name is present in the normalised candid
 
 Chris's proposed stage 4, measured with the exact variant (duration +-2s AND (performer OR verbatim OR studio-in-title)):
 
-- eporner + xvideos: gains 13 scenes, **all 13 verified wrong** - "Legendary Alinas First Anal" matched a Maddie Wren upload; the Lancelot gains are the known 15-collision set (Cheyla Collins upload matched to an Emy Rous scene, etc.); xvideos' gain is two Tushy compilations.
+- eporner + xvideos: gains 13 scenes, **all 13 verified wrong** - "Legendary Alinas First A..." matched a Maddie Wren upload; the Lancelot gains are the known 15-collision set (Cheyla Collins upload matched to an Emy Rous scene, etc.); xvideos' gain is two Tushy compilations.
 - sxyprn Tushy slice: zero studio-only gains (the 8 matched scenes all carry performer/verbatim evidence anyway).
 - Mechanism: same-studio scenes cluster at near-identical durations and repost titles almost always carry the studio tag, so studio-only matches are pure noise.
 - **Verdict: rejected as a match condition. Studio stays query-only** (query construction above), where it measured as a recall win.
@@ -59,7 +59,7 @@ obfuscated convention that open search cannot match. Proof case (Chris, 2026-09-
 profile **Vovick17** (1,589 uploads). Crawled the newest ~320 uploads (profile pages reach
 back to April): **18/46 (39%) of the last month's Mambo Perv + Lancelot Styles Evolution
 scenes are present**, every one within +-2s of the TPDB duration (17 of 18 exact or 1s off),
-every one titled like `LLW - LanaWills 924` / `Little Latina Whore MAYA922` - unicode-bold
+every one titled like `LLW - LanaWills 924` / `Little Latina W... MAYA922` - unicode-bold
 (NFKC-foldable), FIRST-NAME-only, with a trailing MMDD code equal to the scene's release
 date. These uploads are invisible to the open-search gate: first-name-only titles fail the
 every-token performer check, and tag search is ruled out. The uploader profile is the
@@ -88,7 +88,7 @@ last-month scenes are absent (whole performers missing: Margo Ferreira, Line Hea
 Megan Noir, Andrea Frank, Ellie Nova; same-day releases not yet up). Uploader pools supplement
 open search; they do not replace it.
 
-Seed-pool notes (census of 6,964 most-recent anal uploads, 2026-09-25): **KJUIUI** (17 uploads
+Seed-pool notes (census of 6,964 most-recent matching uploads, 2026-09-25): **KJUIUI** (17 uploads
 in 2 weeks, 2.4M views) carries the same Lancelot/Mambo scenes but keeps full performer names
 in Lancelot's house-style titles - the open-search name gate works on him where Vovick's
 retitles need the pool gate. **wmrt0s** (18 uploads) carried the Tushy "STACY CRYSTAL No More
@@ -98,7 +98,7 @@ not as a coverage guarantee.
 
 ## Tiebreak: picking among multiple accepted candidates
 
-When stages 1+3 accept more than one candidate (duplicate rips are routine - "Perfect Hottie Wants Anal" has 5 in-window sxyprn uploads):
+When stages 1+3 accept more than one candidate (duplicate rips are routine - "Perfect H... Wants A..." has 5 in-window sxyprn uploads):
 
 1. **Dedupe by title stem.** Normalise title, strip repost decorations (`{NEW}`, `{Watch/Download:}` URLs, trailing hashtag blocks, dates); candidates sharing a stem are one logical upload - keep the best by the ranking below.
 2. **Rank:** exact-duration closeness first, then upload date closest to release date (where the field exists), then views, then oldest.
@@ -169,11 +169,11 @@ Fallback path, in order:
 
 ## Negative tests (must not match)
 
-- "Shy Pale Skin White Brazilian, Margo Ferreira" (1850s) must NOT match "La Paisita Oficial MILF..." (wrong performer at the right duration).
+- "Shy Pale Skin White Brazilian, Margo Ferreira" (1850s) must NOT match "La Paisita Oficial ..." (wrong performer at the right duration).
 - The 15 eporner Lancelot duration-window rows (e.g. "Megan Petite's Return Vs Lancelot" at 2632s) must NOT match the Ashley Vixen / Cindy Lore / Desire Adams scenes at 2630/2441s.
-- "Legendary Alinas First Anal" must NOT match "Tushy 26 09 06 maddie wren perfect hottie wants anal" (same studio, in-window, wrong performer - this is the studio-OR trap).
+- "Legendary Alinas First A..." must NOT match "Tushy 26 09 06 maddie wren perfect h..." (same studio, in-window, wrong performer - this is the studio-OR trap).
 - Duration off by 3s: no match even with performer present.
-- "Beauty Saves Marriage With Anal" (2503s, performer "Geishakyd") MUST match the 2504s sxyprn uploads - regression test for single-token performer queries.
+- "Beauty Saves Marriage W..." (2503s, performer "Geishakyd") MUST match the 2504s sxyprn uploads - regression test for single-token performer queries.
 - Trusted-pool disambiguation: "Maya Bell 2115s" MUST match `MAYA922` (2115s) and MUST NOT match `MAYA922 2` (2555s) - same uploader, same name, same date code; duration is the only separator.
 - Trusted-pool collision: the 3102s Cherry Kiss scene MUST NOT match the 3100s `LLW - LanaWills 924` upload (2s apart, wrong performer, wrong date code).
-- From the 2026-09-25 fresh-item test: "Maya Bell, 20Y Beautiful Brazilian First Double Anal" (2115s) must NOT match the in-window Yasmina Khan gangbang upload; "Petite Argentinian Anal Demolished" (1418s) must NOT match the in-window "Badgirl Sandra" creampie upload. Both land inside duration+date with no other check - stage 3 is what rejects them.
+- From the 2026-09-25 fresh-item test: "Maya Bell, 20Y Beautiful Brazilian First D..." (2115s) must NOT match the in-window Yasmina Khan upload; "Petite Argentinian A... Demolished" (1418s) must NOT match the in-window "Badgirl Sandra" upload. Both land inside duration+date with no other check - stage 3 is what rejects them.

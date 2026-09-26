@@ -1,5 +1,7 @@
 # Liszt
 
+> **Content note:** personal adult-content catalogue project - specs and fixtures contain adult titles.
+
 **[Roadmap](https://github.com/townsc01/liszt/milestones)** (milestones - status + build order) - **[ROADMAP.md](ROADMAP.md)** (the map, linked).
 
 Liszt is a personal hobby project for keeping a rolling 90-day watchlist of scenes released by selected studios. The aim is a useful, reasonably complete, accurate, regularly updated list showing each scene's studio, title, release date, performers, thumbnail, and link to its release page.
@@ -12,7 +14,7 @@ Feature specs live in `docs/specs/`; each names its prerequisites in its `Depend
 
 ## Sources and adapters
 
-Each studio has one configured source of release information. The source and extraction method can differ by studio: a studio website, primary storefront, third-party API such as TPDB, or another suitable source. Source URLs and record details are kept for debugging and traceability. The current code uses TPDB for **Lancelot Styles Evolution**, **Mambo Perv**, **Tushy**, and **Maximo Garcia** (restricted to scenes with female performers), and Bang! Originals' anal-filtered listing with linked video metadata for **Bang! Originals**. These adapters are registered in `src/studios/index.js`.
+Each studio has one configured source of release information. The source and extraction method can differ by studio: a studio website, primary storefront, third-party API such as TPDB, or another suitable source. Source URLs and record details are kept for debugging and traceability. The current code uses TPDB for **Lancelot Styles Evolution**, **Mambo Perv**, **Tushy**, and **Maximo Garcia** (restricted to scenes with female performers), and **Bang! Originals**' configured listing with linked video metadata. These adapters are registered in `src/studios/index.js`.
 
 The current adapter contract is a module in `src/studios/` registered in `src/studios/index.js`:
 
