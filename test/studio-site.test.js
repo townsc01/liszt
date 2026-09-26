@@ -95,6 +95,29 @@ test("a zero-match pass aligns names once and defers retrieval to the next pass"
   assert.deepEqual(stillMissing.performers, ["Studio Name"]);
 });
 
+test("a fresh TPDB alias list reuses the stored canonical names instead of re-scraping", async () => {
+  const aliases = ["TPDB Alias"];
+  const canonical = ["Studio Name"];
+  const poll = () => ({ id: "studio:1", studioId: "studio", title: "A sufficiently descriptive scene title",
+    releaseDate: "2026-09-23", releaseUrl: "https://analvids.com/one", performers: [...aliases] });
+  const queries = [];
+  const lookup = async (input) => { queries.push([...input.performers]); return []; };
+  let scrapes = 0;
+  const scrape = async (input) => { scrapes++; return { ...input, performers: [...canonical], fieldProvenance: { performers: "studio-site" } }; };
+
+  const [aligned] = await enrichSxyprnLinks([poll()], [], lookup, { now: new Date("2026-09-24T12:00:00Z"), scrape });
+  assert.deepEqual(aligned.performers, canonical);
+  assert.equal(aligned.studioSiteNamingVersion, JSON.stringify(canonical));
+  assert.equal(scrapes, 1);
+
+  // The next sync re-fetches the same TPDB aliases; the aligned record is the prior.
+  const [reused] = await enrichSxyprnLinks([poll()], [aligned], lookup, { now: new Date("2026-09-26T12:00:00Z"), scrape });
+  assert.deepEqual(queries.at(-1), canonical, "the next lookup must search the canonical names");
+  assert.deepEqual(reused.performers, canonical);
+  assert.equal(reused.studioSiteNamingVersion, JSON.stringify(canonical));
+  assert.equal(scrapes, 1, "an aligned scene must not scrape again for the same naming version");
+});
+
 test("SSRF: redirect to internal IP is blocked", async () => {
   const scene = { releaseUrl: "https://sexlikereal.com/redirect" };
   let redirectCount = 0;

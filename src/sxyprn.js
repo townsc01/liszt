@@ -150,6 +150,17 @@ function namingVersion(scene) {
   return JSON.stringify(scene.performers || []);
 }
 
+/**
+ * An aligned scene stores its scraped canonical names as `performers` with the matching
+ * `studioSiteNamingVersion`. A source refresh re-fetches the raw TPDB aliases, so prefer the
+ * stored canonical names whenever a provenanced naming version is present - otherwise the
+ * alias list overwrites the alignment and the lookup re-scrapes on every sync.
+ */
+function storedCanonicalNames(prior) {
+  if (!prior || typeof prior.studioSiteNamingVersion !== "string" || !Array.isArray(prior.performers)) return null;
+  return namingVersion(prior) === prior.studioSiteNamingVersion ? prior.performers : null;
+}
+
 export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = new Date(), days = 14, fetchImpl = fetch, scrape = enrichFromStudioSite } = {}) {
   const byId = new Map(previousScenes.map((scene) => [scene.id, scene]));
   const byReleaseUrl = new Map(previousScenes.filter((scene) => scene.releaseUrl).map((scene) => [scene.releaseUrl, scene]));
@@ -163,6 +174,11 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
       continue;
     }
     const prior = byId.get(scene.id) || byReleaseUrl.get(scene.releaseUrl);
+    const canonical = storedCanonicalNames(prior);
+    if (canonical) {
+      scene.performers = [...canonical];
+      scene.studioSiteNamingVersion = prior.studioSiteNamingVersion;
+    }
     const same = unchanged(scene, prior);
     const priorLinks = same ? ([...(prior.videoUrls || []), ...legacyLinks(prior)]).filter((link, index, links) =>
       ((link.source === "sxyprn" && validSxyprnUrl(link.url)) || link.source === "eporner") && links.findIndex((item) => item.source === link.source && item.url === link.url) === index) : [];
