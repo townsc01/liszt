@@ -74,6 +74,18 @@ Every enrichment pass re-verifies the 25 stalest stored links (oldest `verifiedA
 
 The existing `liszt` Render service remains a single Node web service. Its build runs `npm ci`; `npm start` runs only Liszt. The optional `Dockerfile` packages the same app. The local catalogue is bundled with the deployment. Updates written by Refresh data are lost on a fresh deploy or instance restart unless `LISZT_DATA_PATH` points to persistent storage.
 
+## Automated code review
+
+PRs are reviewed automatically by an OpenHands agent (`.github/workflows/pr-review-by-openhands.yml`), so an agent-authored PR gets a second opinion from a **different LLM** than the one that wrote it. The reviewer reads the diff in the context of the whole repository, checks it against `AGENTS.md` and the relevant `docs/specs/`, and posts inline comments with a verdict (approve / request changes / comment). Repository-specific rules live in [`.agents/skills/custom-codereview-guide.md`](.agents/skills/custom-codereview-guide.md).
+
+**One-time setup:** add a repository secret named `LLM_API_KEY` (Settings → Secrets and variables → Actions). This is the **OpenHands LLM API key** from [app.all-hands.dev → Settings → API Keys](https://app.all-hands.dev/settings/api-keys) (you need at least \$10 in Cloud credits first). The reviewer bills against your OpenHands Cloud credits; no other provider key is needed.
+
+**Triggers:** a new non-draft PR from an established contributor, a draft marked ready, the `review-this` label, or requesting `openhands-agent` as a reviewer. The label and reviewer request are the reliable on-demand paths. Re-add `review-this` after pushing fixes to get a follow-up review.
+
+**Model:** the reviewer model is the single `llm-model:` line in the workflow. It uses the `openhands/` prefix (`openhands/gpt-5-2025-08-07` by default), which auto-routes to the OpenHands LLM proxy, so changing models is a one-line edit - pick any model from the [available models list](https://docs.openhands.dev/openhands/usage/llms/openhands-llms#available-models). Keep it a different family from the authoring agent.
+
+Docs: [Automated Code Review](https://docs.openhands.dev/openhands/usage/use-cases/code-review).
+
 ## Possible next steps
 
 A future dashboard flow could accept a studio name or website URL and add it to the watchlist. Studios with unusual sources may still need dedicated adapters. Studio discovery, browser-based ingestion, and checks for scenes already on disk are not implemented on the current branch.

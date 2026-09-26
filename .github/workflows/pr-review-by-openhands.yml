@@ -1,0 +1,54 @@
+name: PR Review by OpenHands
+
+# Automated second-opinion code review. An OpenHands agent - running a different
+# LLM than the one that authored the PR - reads the diff in the context of the
+# whole repository, checks it against AGENTS.md and the relevant docs/specs/,
+# and posts inline review comments with a verdict.
+#
+# Docs: https://docs.openhands.dev/openhands/usage/use-cases/code-review
+#
+# Triggers (any of):
+#   1. a new non-draft PR from an established contributor
+#   2. a draft PR marked ready for review (same contributor filter)
+#   3. the `review-this` label is added - the reliable on-demand trigger
+#   4. `openhands-agent` is requested as a reviewer
+#
+# pull_request_target lets fork PRs reach repository secrets; only users with
+# write access can add labels or request reviewers. The reviewer gets API keys
+# as SDK secrets, not environment variables, so PR code cannot read them.
+on:
+  pull_request_target:
+    types: [opened, ready_for_review, labeled, review_requested]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr-review:
+    if: |
+      (github.event.action == 'opened' && github.event.pull_request.draft == false && github.event.pull_request.author_association != 'FIRST_TIME_CONTRIBUTOR' && github.event.pull_request.author_association != 'NONE') ||
+      (github.event.action == 'ready_for_review' && github.event.pull_request.author_association != 'FIRST_TIME_CONTRIBUTOR' && github.event.pull_request.author_association != 'NONE') ||
+      github.event.label.name == 'review-this' ||
+      github.event.requested_reviewer.login == 'openhands-agent'
+    concurrency:
+      group: pr-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run PR Review
+        uses: OpenHands/extensions/plugins/pr-review@v0.24.0
+        with:
+          # Deliberately a different model family from the authoring agent so
+          # the review is a genuine second opinion. Swap this one line to
+          # change reviewers (any `openhands/` model in the LLM docs).
+          llm-model: openhands/gpt-5-2025-08-07
+          # Enforce an Evidence section in the PR description (AGENTS.md #9).
+          require-evidence: 'true'
+          # Off by default: high token cost and timeout risk (extensions #208).
+          use-sub-agents: 'false'
+          # Pin the plugin scripts alongside the action ref above.
+          extensions-version: v0.24.0
+          llm-api-key: ${{ secrets.LLM_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
