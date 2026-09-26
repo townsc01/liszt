@@ -1,5 +1,5 @@
 {
-  "lastChecked": "2026-09-26T14:17:57.929Z",
+  "lastChecked": "2026-09-26T14:37:40.834Z",
   "studios": [
     {
       "id": "lancelot-styles-evolution",
@@ -9,7 +9,7 @@
         "url": "https://api.theporndb.net/scenes",
         "role": "authoritative catalogue"
       },
-      "lastSuccessfulRefresh": "2026-09-26T14:17:57.929Z",
+      "lastSuccessfulRefresh": "2026-09-26T14:37:40.834Z",
       "error": null
     },
     {
@@ -20,7 +20,7 @@
         "url": "https://api.theporndb.net/scenes",
         "role": "authoritative catalogue"
       },
-      "lastSuccessfulRefresh": "2026-09-26T14:17:57.929Z",
+      "lastSuccessfulRefresh": "2026-09-26T14:37:40.834Z",
       "error": null
     },
     {
@@ -31,7 +31,7 @@
         "url": "https://api.theporndb.net/scenes",
         "role": "authoritative catalogue"
       },
-      "lastSuccessfulRefresh": "2026-09-26T14:17:57.929Z",
+      "lastSuccessfulRefresh": "2026-09-26T14:37:40.834Z",
       "error": null
     },
     {
@@ -43,7 +43,7 @@
         "role": "authoritative catalogue"
       },
       "lastSuccessfulRefresh": "2026-09-26T14:17:57.929Z",
-      "error": null
+      "error": "Bang! Originals listing has an unexpected structured response"
     },
     {
       "id": "maximo-garcia",
@@ -53,7 +53,7 @@
         "url": "https://api.theporndb.net/scenes",
         "role": "authoritative catalogue"
       },
-      "lastSuccessfulRefresh": "2026-09-26T14:17:57.929Z",
+      "lastSuccessfulRefresh": "2026-09-26T14:37:40.834Z",
       "error": null
     },
     {
@@ -100,12 +100,8 @@
       "id": "lancelot-styles-evolution:18e2f0d4-7d49-40ee-bc59-bde834be3e80",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "videoCheckedAt": "2026-09-26T14:20:05.242Z",
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "studioSiteNamingVersion": "[\"Models\"]",
+      "videoCheckedAt": "2026-09-26T14:20:05.242Z"
     },
     {
       "sourceSceneId": "2484772e-4b6f-4dbb-81a5-8ea1c6393475",
@@ -127,12 +123,8 @@
       "id": "lancelot-styles-evolution:2484772e-4b6f-4dbb-81a5-8ea1c6393475",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "videoCheckedAt": "2026-09-26T14:20:05.246Z",
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "studioSiteNamingVersion": "[\"Models\"]",
+      "videoCheckedAt": "2026-09-26T14:20:05.246Z"
     },
     {
       "sourceSceneId": "1b5793bc-24e8-4a8d-a127-10ef5c67f651",
@@ -152,17 +144,15 @@
         "sourceSceneId": "1b5793bc-24e8-4a8d-a127-10ef5c67f651"
       },
       "fieldProvenance": {
-        "durationSec": "studio-site",
-        "releaseDate": "studio-site",
-        "performers": "studio-site"
+        "durationSec": "studio-site"
       },
       "metadataPoor": false,
       "id": "maximo-garcia:1b5793bc-24e8-4a8d-a127-10ef5c67f651",
       "studioId": "maximo-garcia",
       "studio": "Maximo Garcia",
       "creatorStudio": true,
-      "videoCheckedAt": "2026-09-26T14:20:05.246Z",
-      "studioSiteNamingVersion": "[\"Isa Metible\"]"
+      "studioSiteNamingVersion": "[\"Isa Metible\"]",
+      "videoCheckedAt": "2026-09-26T14:20:05.246Z"
     },
     {
       "sourceSceneId": "43879926-ae2b-4047-9e08-d9a60ef4cc01",
@@ -184,6 +174,7 @@
       "id": "lancelot-styles-evolution:43879926-ae2b-4047-9e08-d9a60ef4cc01",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -192,12 +183,7 @@
           "verifiedAt": "2026-09-24T22:03:36.556Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:20:05.246Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:20:05.246Z"
     },
     {
       "sourceSceneId": "4b47ffb2-5b04-4666-b406-f5a61c3f5ca3",
@@ -219,12 +205,8 @@
       "id": "mambo-perv:4b47ffb2-5b04-4666-b406-f5a61c3f5ca3",
       "studioId": "mambo-perv",
       "studio": "Mambo Perv",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "videoCheckedAt": "2026-09-26T14:20:05.246Z",
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "studioSiteNamingVersion": "[\"Models\"]",
+      "videoCheckedAt": "2026-09-26T14:20:05.246Z"
     },
     {
       "sourceSceneId": "45b342aa-c603-4301-8414-63f52c4ec0de",
@@ -244,17 +226,15 @@
         "sourceSceneId": "45b342aa-c603-4301-8414-63f52c4ec0de"
       },
       "fieldProvenance": {
-        "durationSec": "studio-site",
-        "releaseDate": "studio-site",
-        "performers": "studio-site"
+        "durationSec": "studio-site"
       },
       "metadataPoor": false,
       "id": "maximo-garcia:45b342aa-c603-4301-8414-63f52c4ec0de",
       "studioId": "maximo-garcia",
       "studio": "Maximo Garcia",
       "creatorStudio": true,
-      "videoCheckedAt": "2026-09-26T14:20:05.246Z",
-      "studioSiteNamingVersion": "[\"Medusa\"]"
+      "studioSiteNamingVersion": "[\"Medusa\"]",
+      "videoCheckedAt": "2026-09-26T14:20:05.246Z"
     },
     {
       "sourceSceneId": "53a37a76-3aa4-4b28-aa82-8779de1655cf",
@@ -313,13 +293,13 @@
           "source": "sxyprn",
           "url": "https://sxyprn.com/post/6ab3e3c4edbd5.html",
           "embedUrl": null,
-          "verifiedAt": "2026-09-26T14:21:46.137Z"
+          "verifiedAt": "2026-09-26T14:38:49.221Z"
         },
         {
           "source": "sxyprn",
           "url": "https://sxyprn.com/post/6ab46356de33e.html",
           "embedUrl": null,
-          "verifiedAt": "2026-09-26T14:21:46.137Z"
+          "verifiedAt": "2026-09-26T14:38:49.221Z"
         }
       ]
     },
@@ -341,17 +321,15 @@
         "sourceSceneId": "d6795357-289b-4405-a6ff-56cf930cc64f"
       },
       "fieldProvenance": {
-        "durationSec": "studio-site",
-        "releaseDate": "studio-site",
-        "performers": "studio-site"
+        "durationSec": "studio-site"
       },
       "metadataPoor": false,
       "id": "maximo-garcia:d6795357-289b-4405-a6ff-56cf930cc64f",
       "studioId": "maximo-garcia",
       "studio": "Maximo Garcia",
       "creatorStudio": true,
-      "videoCheckedAt": "2026-09-26T14:21:46.137Z",
-      "studioSiteNamingVersion": "[\"Maya Rose\"]"
+      "studioSiteNamingVersion": "[\"Maya Rose\"]",
+      "videoCheckedAt": "2026-09-26T14:21:46.137Z"
     },
     {
       "sourceSceneId": "b4a004cf-ced2-466b-a922-9c6de8aebcc6",
@@ -373,6 +351,7 @@
       "id": "lancelot-styles-evolution:b4a004cf-ced2-466b-a922-9c6de8aebcc6",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -387,12 +366,7 @@
           "verifiedAt": "2026-09-24T22:04:07.011Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:22:56.181Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:22:56.181Z"
     },
     {
       "sourceSceneId": "23c47da9-d087-4280-b4cb-cd91a23ea77d",
@@ -414,12 +388,8 @@
       "id": "mambo-perv:23c47da9-d087-4280-b4cb-cd91a23ea77d",
       "studioId": "mambo-perv",
       "studio": "Mambo Perv",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "videoCheckedAt": "2026-09-26T14:22:56.214Z",
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "studioSiteNamingVersion": "[\"Models\"]",
+      "videoCheckedAt": "2026-09-26T14:22:56.214Z"
     },
     {
       "sourceSceneId": "c30c13ae-07fc-4ffe-b640-5faf5caf0766",
@@ -441,6 +411,7 @@
       "id": "lancelot-styles-evolution:c30c13ae-07fc-4ffe-b640-5faf5caf0766",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -449,12 +420,7 @@
           "verifiedAt": "2026-09-24T22:06:24.855Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:22:56.436Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:22:56.436Z"
     },
     {
       "sourceSceneId": "ffb600d7-e348-4946-a68d-96e7da403768",
@@ -476,6 +442,7 @@
       "id": "lancelot-styles-evolution:ffb600d7-e348-4946-a68d-96e7da403768",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -484,12 +451,7 @@
           "verifiedAt": "2026-09-24T22:06:24.855Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:23:26.038Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:23:26.038Z"
     },
     {
       "sourceSceneId": "6d57d724-35c3-42e7-93e9-fc50751caa1e",
@@ -511,6 +473,7 @@
       "id": "lancelot-styles-evolution:6d57d724-35c3-42e7-93e9-fc50751caa1e",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -525,12 +488,7 @@
           "verifiedAt": "2026-09-24T22:04:36.798Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:24:05.559Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:24:05.559Z"
     },
     {
       "sourceSceneId": "7daacfe4-11e3-4117-8eac-9aef6ee22499",
@@ -550,17 +508,15 @@
         "sourceSceneId": "7daacfe4-11e3-4117-8eac-9aef6ee22499"
       },
       "fieldProvenance": {
-        "durationSec": "studio-site",
-        "releaseDate": "studio-site",
-        "performers": "studio-site"
+        "durationSec": "studio-site"
       },
       "metadataPoor": false,
       "id": "maximo-garcia:7daacfe4-11e3-4117-8eac-9aef6ee22499",
       "studioId": "maximo-garcia",
       "studio": "Maximo Garcia",
       "creatorStudio": true,
-      "videoCheckedAt": "2026-09-26T14:24:16.432Z",
-      "studioSiteNamingVersion": "[\"Marfe Okkk\"]"
+      "studioSiteNamingVersion": "[\"Marfe Okkk\"]",
+      "videoCheckedAt": "2026-09-26T14:24:16.432Z"
     },
     {
       "sourceSceneId": "a56bb63a-3574-4a3b-af54-a07174539be8",
@@ -582,6 +538,7 @@
       "id": "mambo-perv:a56bb63a-3574-4a3b-af54-a07174539be8",
       "studioId": "mambo-perv",
       "studio": "Mambo Perv",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -596,12 +553,7 @@
           "verifiedAt": "2026-09-24T22:05:06.794Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:24:56.114Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:24:56.114Z"
     },
     {
       "sourceSceneId": "a29bba89-5c35-479c-91e4-2e95314b74f5",
@@ -623,9 +575,8 @@
       "id": "tushy:a29bba89-5c35-479c-91e4-2e95314b74f5",
       "studioId": "tushy",
       "studio": "Tushy",
-      "metadataPoor": true,
-      "videoCheckedAt": "2026-09-26T14:25:06.138Z",
-      "studioSiteNamingVersion": "[\"Geishakyd\"]"
+      "studioSiteNamingVersion": "[\"Geishakyd\"]",
+      "videoCheckedAt": "2026-09-26T14:25:06.138Z"
     },
     {
       "sourceSceneId": "68d5cdf1-dae8-433a-ad94-83bfc6ea56f4",
@@ -647,6 +598,7 @@
       "id": "lancelot-styles-evolution:68d5cdf1-dae8-433a-ad94-83bfc6ea56f4",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -661,12 +613,7 @@
           "verifiedAt": "2026-09-24T22:05:36.770Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:25:16.076Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:25:16.076Z"
     },
     {
       "sourceSceneId": "ccb6580e-85e0-434f-b6eb-30853d733f5b",
@@ -688,6 +635,7 @@
       "id": "lancelot-styles-evolution:ccb6580e-85e0-434f-b6eb-30853d733f5b",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -696,12 +644,7 @@
           "verifiedAt": "2026-09-24T22:06:24.860Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:25:26.069Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:25:26.069Z"
     },
     {
       "sourceSceneId": "86d240d8-c400-43b3-8a5c-cf7e221845fc",
@@ -723,6 +666,7 @@
       "id": "lancelot-styles-evolution:86d240d8-c400-43b3-8a5c-cf7e221845fc",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -731,12 +675,7 @@
           "verifiedAt": "2026-09-24T22:06:25.311Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:25:36.061Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:25:36.061Z"
     },
     {
       "sourceSceneId": "b6b59862-b4a0-4b8b-9682-3997b45640a2",
@@ -758,6 +697,7 @@
       "id": "mambo-perv:b6b59862-b4a0-4b8b-9682-3997b45640a2",
       "studioId": "mambo-perv",
       "studio": "Mambo Perv",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -766,12 +706,7 @@
           "verifiedAt": "2026-09-24T22:06:35.284Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:25:46.076Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:25:46.076Z"
     },
     {
       "sourceSceneId": "ae6dac50-e658-4607-be02-b791bc22e6f2",
@@ -824,6 +759,7 @@
       "id": "lancelot-styles-evolution:5ad1967c-5cef-4020-8256-50227acf985b",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -832,12 +768,7 @@
           "verifiedAt": "2026-09-24T22:06:55.209Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:27:26.143Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:27:26.143Z"
     },
     {
       "sourceSceneId": "0de614b7-61fe-4cb6-ae87-bcb51419d6e6",
@@ -890,6 +821,7 @@
       "id": "lancelot-styles-evolution:4e334039-573f-4b15-8d9d-1ae53e6162f5",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -898,12 +830,7 @@
           "verifiedAt": "2026-09-24T22:07:05.043Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:27:56.313Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:27:56.313Z"
     },
     {
       "sourceSceneId": "fab726bb-71dd-4b06-baa9-a68a67440154",
@@ -954,17 +881,15 @@
         "sourceSceneId": "7e01b0f4-0862-42c5-ae94-77cbe119e354"
       },
       "fieldProvenance": {
-        "durationSec": "studio-site",
-        "releaseDate": "studio-site",
-        "performers": "studio-site"
+        "durationSec": "studio-site"
       },
       "metadataPoor": false,
       "id": "maximo-garcia:7e01b0f4-0862-42c5-ae94-77cbe119e354",
       "studioId": "maximo-garcia",
       "studio": "Maximo Garcia",
       "creatorStudio": true,
-      "videoCheckedAt": "2026-09-26T14:28:15.492Z",
-      "studioSiteNamingVersion": "[\"Lily Phillips\"]"
+      "studioSiteNamingVersion": "[\"Lily Phillips\"]",
+      "videoCheckedAt": "2026-09-26T14:28:15.492Z"
     },
     {
       "sourceSceneId": "53dd6566-244e-46b6-9553-b0232c18d540",
@@ -986,6 +911,7 @@
       "id": "lancelot-styles-evolution:53dd6566-244e-46b6-9553-b0232c18d540",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -994,12 +920,7 @@
           "verifiedAt": "2026-09-24T22:07:15.098Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:28:45.933Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:28:45.933Z"
     },
     {
       "sourceSceneId": "0a64bcc3-c786-4fc0-968b-b374bb98eba7",
@@ -1056,6 +977,7 @@
       "id": "lancelot-styles-evolution:3658dc0e-3026-4a2d-bf82-1fea2c8ee1a4",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -1064,12 +986,7 @@
           "verifiedAt": "2026-09-24T22:07:25.092Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:29:26.257Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:29:26.257Z"
     },
     {
       "sourceSceneId": "446a8c42-c0df-4ae1-906f-2fa4892b5eaa",
@@ -1091,6 +1008,7 @@
       "id": "lancelot-styles-evolution:446a8c42-c0df-4ae1-906f-2fa4892b5eaa",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -1099,12 +1017,7 @@
           "verifiedAt": "2026-09-24T22:07:35.080Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:30:15.881Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:30:15.881Z"
     },
     {
       "sourceSceneId": "55710a9a-aa22-42b9-bfac-033b574143d8",
@@ -1126,9 +1039,8 @@
       "id": "tushy:55710a9a-aa22-42b9-bfac-033b574143d8",
       "studioId": "tushy",
       "studio": "Tushy",
-      "metadataPoor": true,
-      "videoCheckedAt": "2026-09-26T14:30:26.241Z",
-      "studioSiteNamingVersion": "[\"Stacy Crystal\"]"
+      "studioSiteNamingVersion": "[\"Stacy Crystal\"]",
+      "videoCheckedAt": "2026-09-26T14:30:26.241Z"
     },
     {
       "sourceSceneId": "c2d4b3b5-eb5a-46f3-8a1e-5e692c704227",
@@ -1185,6 +1097,7 @@
       "id": "lancelot-styles-evolution:7099c271-247b-409d-a50c-b3addf14eb98",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -1193,12 +1106,7 @@
           "verifiedAt": "2026-09-24T22:07:45.114Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:30:46.105Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:30:46.105Z"
     },
     {
       "sourceSceneId": "9e973820-ca9a-4d05-9be8-75b39bf4cc14",
@@ -1220,6 +1128,7 @@
       "id": "lancelot-styles-evolution:9e973820-ca9a-4d05-9be8-75b39bf4cc14",
       "studioId": "lancelot-styles-evolution",
       "studio": "Lancelot Styles Evolution",
+      "studioSiteNamingVersion": "[\"Models\"]",
       "videoUrls": [
         {
           "source": "sxyprn",
@@ -1228,12 +1137,7 @@
           "verifiedAt": "2026-09-24T22:07:55.248Z"
         }
       ],
-      "videoCheckedAt": "2026-09-26T14:31:55.826Z",
-      "fieldProvenance": {
-        "performers": "studio-site"
-      },
-      "metadataPoor": false,
-      "studioSiteNamingVersion": "[\"Models\"]"
+      "videoCheckedAt": "2026-09-26T14:31:55.826Z"
     },
     {
       "sourceSceneId": "66e89b46-58d0-45ff-aa1f-9e3c4da4e230",
@@ -1253,17 +1157,15 @@
         "sourceSceneId": "66e89b46-58d0-45ff-aa1f-9e3c4da4e230"
       },
       "fieldProvenance": {
-        "durationSec": "studio-site",
-        "releaseDate": "studio-site",
-        "performers": "studio-site"
+        "durationSec": "studio-site"
       },
       "metadataPoor": false,
       "id": "maximo-garcia:66e89b46-58d0-45ff-aa1f-9e3c4da4e230",
       "studioId": "maximo-garcia",
       "studio": "Maximo Garcia",
       "creatorStudio": true,
-      "videoCheckedAt": "2026-09-26T14:32:05.604Z",
-      "studioSiteNamingVersion": "[\"Lilack\"]"
+      "studioSiteNamingVersion": "[\"Lilack\"]",
+      "videoCheckedAt": "2026-09-26T14:32:05.604Z"
     },
     {
       "sourceSceneId": "70e1551e-4e0e-4ebf-9126-3d215f187dba",
