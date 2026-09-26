@@ -19,12 +19,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run sync
+      # Translation is a background pass, never part of sync. Running it here (and
+      # committing its cache below) is what makes translations durable rather than
+      # re-derived from the LLM on every cold boot. With no key it is glossary-only.
+      - run: npm run backfill:translate
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       - name: Commit updated catalogue
         run: |
-          if [ -n "$(git status --porcelain data/catalogue.json)" ]; then
+          if [ -n "$(git status --porcelain data/catalogue.json data/translations.json)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add data/catalogue.json
+            git add data/catalogue.json data/translations.json
             git commit -m "Refresh live catalogue [skip ci]"
             git push
           else
