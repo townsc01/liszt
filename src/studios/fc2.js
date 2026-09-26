@@ -195,9 +195,9 @@ export function parseArticleProps(props) {
     releaseDate: String(article.release_date ?? "").slice(0, 10),
     duration: article.duration ?? null,
     imageUrl: article.image_url ?? null,
-    // The censorship badge is only present here: 無 (uncensored) / 有 (censored) / null (unmarked).
+    // The censorship badge is only present here: 無 (uncensored) / 有 (censored) / null (unmarked),
+    // or the section 3.3 mixed form "通常版：有 特典版：無" - all preserved verbatim for #104.
     censored: article.censored ?? null,
-    // Section 3.3 mixed badge, e.g. "通常版：有 特典版：無" - preserved verbatim for #104 to classify.
     notFound: article.not_found ?? null,
     status: article.status ?? null,
     salePercentage: article.sale_percentage ?? null,
