@@ -42,6 +42,23 @@ test("duration second pass recovers retitled cards without widening the two-seco
   assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [retitled], detailTitle: retitled.title }) })(durationScene), []);
 });
 
+test("identity evidence cannot bypass the cascade's two-second duration gate", async () => {
+  // Regression for #63: the legacy first pass admitted a title/performer match with no
+  // duration stage at all, so a wrong-duration upload became a link.
+  const wrongDuration = { ...candidate(url, scene.title), durationSeconds: scene.durationSec + 3 };
+  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [wrongDuration], detailTitle: scene.title }) })(scene), []);
+  const inGate = { ...candidate(url, scene.title), durationSeconds: scene.durationSec + 2 };
+  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [inGate], detailTitle: scene.title }) })(scene), [url]);
+});
+
+test("details verification applies the cascade identity gate, not a bare title score", async () => {
+  // The details pass is the same gate as the first pass: a post whose details title carries
+  // no performer or verbatim-title evidence must never be stored as a link.
+  const source = client({ videos: [candidate(url, scene.title)], detailTitle: "Someone Else Relaxing Massage Debut" });
+  assert.deepEqual(await createSxyprnLookup({ client: source })(scene), []);
+  assert.deepEqual(source.calls.filter(([kind]) => kind === "details"), [["details", url]]);
+});
+
 test("matching prefers the site's native post when duplicate uploads have equal titles", async () => {
   const source = client({ videos: [candidate(other, scene.title, true), candidate(url, scene.title, false)] });
   assert.deepEqual(await createSxyprnLookup({ client: source, maxMatches: 2 })(scene), [url, other]);
