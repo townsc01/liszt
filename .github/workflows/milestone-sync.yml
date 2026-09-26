@@ -1,0 +1,99 @@
+name: Milestone sync from phase label
+
+# Mechanical milestone bookkeeping: no third-party actions, no hardcoded milestone
+# numbers, and no API write unless the target milestone actually changes.
+#
+# Triggers are `opened` and `labeled` ONLY. `unlabeled` is deliberately absent: a
+# label removal must never move or clear a milestone.
+#
+# Mapping, fixed precedence (highest first), no judgment:
+#   phase: new lanes   -> Phase 4 - New lanes
+#   phase: playback UX -> Phase 3 - Playback UX
+#   phase: maintenance -> Maintenance queue
+#
+# Manual assignments win: an issue whose current milestone is not one of the three
+# mapped milestones is left untouched. No code path ever clears a milestone.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync milestone from phase label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          : "${GH_REPO:?GH_REPO is required}"
+          : "${ISSUE_NUMBER:?ISSUE_NUMBER is required}"
+
+          # label -> milestone title, in precedence order (highest first)
+          precedence_labels=("phase: new lanes" "phase: playback UX" "phase: maintenance")
+          precedence_titles=("Phase 4 - New lanes" "Phase 3 - Playback UX" "Maintenance queue")
+
+          issue_json=$(gh api "repos/${GH_REPO}/issues/${ISSUE_NUMBER}")
+          labels=$(printf '%s' "$issue_json" | jq -r '.labels[].name')
+          current_milestone=$(printf '%s' "$issue_json" | jq -r '.milestone.number // empty')
+
+          has_label() {
+            grep -Fxq -- "$1" <<< "$labels"
+          }
+
+          target_title=""
+          for i in "${!precedence_labels[@]}"; do
+            if has_label "${precedence_labels[$i]}"; then
+              target_title="${precedence_titles[$i]}"
+              break
+            fi
+          done
+
+          if [ -z "$target_title" ]; then
+            echo "Issue #${ISSUE_NUMBER}: no recognized phase label, nothing to do."
+            exit 0
+          fi
+
+          # Resolve milestone numbers by title at run time; never hardcode them.
+          milestones_json=$(gh api --paginate --slurp "repos/${GH_REPO}/milestones?state=all&per_page=100")
+          milestone_number() {
+            printf '%s' "$milestones_json" \
+              | jq -r --arg t "$1" '[flatten[] | select(.title == $t)][0].number // empty'
+          }
+
+          target_number=$(milestone_number "$target_title")
+          if [ -z "$target_number" ]; then
+            echo "Issue #${ISSUE_NUMBER}: milestone '${target_title}' not found, leaving untouched."
+            exit 0
+          fi
+
+          # Manual assignments win: only migrate between the three mapped milestones.
+          if [ -n "$current_milestone" ]; then
+            mapped=0
+            for title in "${precedence_titles[@]}"; do
+              if [ "$current_milestone" = "$(milestone_number "$title")" ]; then
+                mapped=1
+                break
+              fi
+            done
+            if [ "$mapped" -ne 1 ]; then
+              echo "Issue #${ISSUE_NUMBER}: manual milestone, leaving untouched."
+              exit 0
+            fi
+          fi
+
+          # Idempotent: compare before writing so a re-run makes zero API writes.
+          if [ "$current_milestone" = "$target_number" ]; then
+            echo "Issue #${ISSUE_NUMBER}: already on '${target_title}', nothing to do."
+            exit 0
+          fi
+
+          echo "Issue #${ISSUE_NUMBER}: setting milestone to '${target_title}' (#${target_number})."
+          gh api -X PATCH "repos/${GH_REPO}/issues/${ISSUE_NUMBER}" -F milestone="$target_number" >/dev/null
