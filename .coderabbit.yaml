@@ -57,3 +57,12 @@ reviews:
 
 chat:
   auto_reply: true
+  integrations:
+    linear:
+      usage: "enabled"
+
+knowledge_base:
+  linear:
+    usage: "enabled"  # liszt is public; default auto would disable Linear
+    team_keys:
+      - "LIS"
