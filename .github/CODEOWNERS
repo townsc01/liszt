@@ -3,24 +3,24 @@
 # When a PR touches files matching these patterns, the specified owners are automatically requested for review.
 
 # Matching algorithm experts
-/src/matching.js @owner-team
-/src/matching-config.js @owner-team
+/src/matching.js @townsc01
+/src/matching-config.js @townsc01
 
 # sxyprn integration
-/src/sxyprn.js @owner-team
-/src/sxyprn-overrides.js @owner-team
+/src/sxyprn.js @townsc01
+/src/sxyprn-overrides.js @townsc01
 
 # eporner integration
-/src/eporner.js @owner-team
+/src/eporner.js @townsc01
 
 # Studio adapters
-/src/studios/ @owner-team
+/src/studios/ @townsc01
 
 # CI/CD workflows
-/.github/workflows/ @owner-team
+/.github/workflows/ @townsc01
 
 # Specs
-/docs/specs/ @owner-team
+/docs/specs/ @townsc01
 
 # Tests
-/test/ @owner-team
+/test/ @townsc01
