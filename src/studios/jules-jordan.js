@@ -62,7 +62,7 @@ async function fetchJulesJordanAnalScenes({
     if (batch.length < PER_PAGE) break;
   }
 
-  const analRecords = records.filter((record) => hasAnalCategory(record) || titleSuggestsAnal(record.title));
+  const analRecords = records; // TPDB scenes lack categories/tags; rely on title filter only
   const performerGenders = await resolvePerformerGenders(analRecords, fetchImpl, apiKey);
   const parsed = analRecords.map((record) => parseTpdbScene(record, performerGenders, sourceUrl, { requireFemalePerformer: true })).filter(Boolean);
   const scenes = await mapWithConcurrency(parsed, (scene) => metadataIncomplete(scene) && !scene.releaseUrl.startsWith(`${API_BASE_URL}/`)
