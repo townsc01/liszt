@@ -1,15 +1,15 @@
 import { enrichFromStudioSite, metadataIncomplete, parseIsoDuration } from "../studio-site.js";
 import { mapWithConcurrency } from "../concurrency.js";
 
-const API_BASE_URL = "https://api.theporndb.net";
-const SITES_URL = `${API_BASE_URL}/sites`;
-const PER_PAGE = 100;
-const MAX_PAGES = 1000;
+export const API_BASE_URL = "https://api.theporndb.net";
+export const SITES_URL = `${API_BASE_URL}/sites`;
+export const PER_PAGE = 100;
+export const MAX_PAGES = 1000;
 const MAX_RATE_LIMIT_RETRIES = 4;
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-async function fetchWithRateLimitRetry(url, options, fetchImpl) {
+export async function fetchWithRateLimitRetry(url, options, fetchImpl) {
   for (let attempt = 0; ; attempt += 1) {
     const response = await fetchImpl(url, options);
     if (response.status !== 429 || attempt >= MAX_RATE_LIMIT_RETRIES) return response;
@@ -90,7 +90,7 @@ export function parseTpdbScene(record, performerGenders = new Map(), sourceUrl =
   };
 }
 
-async function requestJson(url, fetchImpl, apiKey) {
+export async function requestJson(url, fetchImpl, apiKey) {
   const response = await fetchWithRateLimitRetry(url, {
     headers: { authorization: `Bearer ${apiKey}`, accept: "application/json" },
   }, fetchImpl);
@@ -100,7 +100,7 @@ async function requestJson(url, fetchImpl, apiKey) {
   return result.data;
 }
 
-async function requestPerformer(url, fetchImpl, apiKey) {
+export async function requestPerformer(url, fetchImpl, apiKey) {
   const response = await fetchWithRateLimitRetry(url, {
     headers: { authorization: `Bearer ${apiKey}`, accept: "application/json" },
   }, fetchImpl);
@@ -111,7 +111,7 @@ async function requestPerformer(url, fetchImpl, apiKey) {
   return result.data;
 }
 
-async function findPerformerGender(name, fetchImpl, apiKey) {
+export async function findPerformerGender(name, fetchImpl, apiKey) {
   const url = new URL(`${API_BASE_URL}/performers`);
   url.searchParams.set("q", name);
   const target = name.trim().toLowerCase();
@@ -132,7 +132,7 @@ async function findPerformerGender(name, fetchImpl, apiKey) {
   return performer?.extras?.gender ?? performer?.gender ?? "";
 }
 
-async function resolvePerformerGenders(records, fetchImpl, apiKey) {
+export async function resolvePerformerGenders(records, fetchImpl, apiKey) {
   const performers = new Map();
   for (const record of records) {
     for (const performer of record.performers || []) {
@@ -177,7 +177,7 @@ async function resolvePerformerGenders(records, fetchImpl, apiKey) {
   return performers;
 }
 
-async function findTpdbSite(siteName, fetchImpl, apiKey) {
+export async function findTpdbSite(siteName, fetchImpl, apiKey) {
   const url = new URL(SITES_URL);
   url.searchParams.set("q", siteName);
   url.searchParams.set("per_page", String(PER_PAGE));
