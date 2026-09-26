@@ -107,6 +107,7 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
     const mapped = [...allCandidates.values()].map((item) => ({ ...item, duration: Number(item.durationSeconds) }));
     const identity = (item) => hasSceneEvidence(scene, item.title, code) ||
       (words(scene.title).length > 0 && words(item.title).join(" ").includes(words(scene.title).join(" ")));
+    // The cascade is the only admission gate in every pass; passes differ in query breadth, never in the gate.
     const picked = pickMatch(scene, mapped, { identity });
     if (!picked) return [];
     const sameStem = mapped.filter((item) => titleStem(item.title) === titleStem(picked.title));
@@ -118,9 +119,9 @@ export function createSxyprnLookup({ client = sxyprn, maxMatches = 1 } = {}) {
       try {
         const detail = await details(item.url);
         successfulDetails++;
-        const durationMatch = pickMatch(scene, [{ ...item, title: detail.title, duration: Number(item.durationSeconds) }], { identity });
+        const accepted = pickMatch(scene, [{ ...item, title: detail.title, duration: Number(item.durationSeconds) }], { identity });
         if (validSxyprnUrl(detail.url) && detail.url === item.url && detail.streamUrl &&
-            durationMatch) {
+            accepted) {
           verified.push({ url: detail.url, score: titleScore(scene.title, detail.title), isExternal: detail.isExternal });
           if (verified.length >= maxMatches) break;
         }
