@@ -253,12 +253,24 @@ test("dead-link history survives the next sync rebuilding the scene from its ada
   assert.deepEqual(withLookup.deadVideoUrls, [dead], "and survives a fresh resolution pass too");
 });
 
-test("a stalled verify times out and is inconclusive instead of hanging the shared pool", async () => {
-  // A connection that never settles: only the abort signal ends it, exactly like a stalled socket.
-  const stalled = (url, { signal } = {}) => new Promise((resolve, reject) => {
-    signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+// A stalled socket is a pending handle that keeps the event loop alive, which is also what lets
+// the unref'd AbortSignal.timeout timer fire. Model that, and add a watchdog so a missing
+// timeout fails fast instead of hanging the suite.
+function stalledFetch() {
+  return (url, { signal } = {}) => new Promise((resolve, reject) => {
+    const keepalive = setInterval(() => {}, 1000);
+    const watchdog = setTimeout(() => stop(new Error("watchdog: the verify timeout never fired")), 5_000);
+    function stop(error) {
+      clearInterval(keepalive);
+      clearTimeout(watchdog);
+      reject(error);
+    }
+    signal?.addEventListener("abort", () => stop(signal.reason), { once: true });
   });
-  const verify = createLinkVerifier({ fetchImpl: stalled, timeoutMs: 20 });
+}
+
+test("a stalled verify times out and is inconclusive instead of hanging the shared pool", async () => {
+  const verify = createLinkVerifier({ fetchImpl: stalledFetch(), timeoutMs: 20 });
   const sxyprnOutcome = await verify(sxyprn(hex(20)));
   assert.equal(sxyprnOutcome.status, "inconclusive", "an sxyprn stall is not proof of deletion");
   assert.match(sxyprnOutcome.reason, /abort/i);
@@ -272,7 +284,16 @@ test("a stalled response body also aborts and stays inconclusive", async () => {
   const stalledBody = async (url, { signal } = {}) => ({
     status: 200,
     ok: true,
-    json: () => new Promise((resolve, reject) => signal?.addEventListener("abort", () => reject(signal.reason), { once: true })),
+    json: () => new Promise((resolve, reject) => {
+      const keepalive = setInterval(() => {}, 1000);
+      const watchdog = setTimeout(() => stop(new Error("watchdog: the verify timeout never fired")), 5_000);
+      function stop(error) {
+        clearInterval(keepalive);
+        clearTimeout(watchdog);
+        reject(error);
+      }
+      signal?.addEventListener("abort", () => stop(signal.reason), { once: true });
+    }),
   });
   const outcome = await createLinkVerifier({ fetchImpl: stalledBody, timeoutMs: 20 })(eporner("ABC101"));
   assert.equal(outcome.status, "inconclusive", "a stalled body is not proof of deletion");
