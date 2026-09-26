@@ -66,3 +66,44 @@ test("profile loader collects uploaded posts and hydrates them through the video
   assert.ok(calls.some((call) => call.includes("/profile/Vovick17/uploaded-videos/")));
   assert.ok(calls.some((call) => call.includes("/api/v2/video/id/?id=ABC123")));
 });
+
+test("eporner search failure is not cached for later enrichment runs", async () => {
+  let offline = true;
+  const lookup = createEpornerLookup({ fetchImpl: async () => {
+    if (offline) throw new Error("search offline");
+    return { ok: true, json: async () => ({ videos: [video] }) };
+  } });
+  await assert.rejects(lookup(scene));
+  offline = false;
+  assert.equal(await lookup(scene), video);
+});
+
+test("eporner search pools expire so later runs see newly uploaded videos", async () => {
+  let calls = 0;
+  const lookup = createEpornerLookup({ poolTtlMs: 20, fetchImpl: async () => {
+    calls++;
+    return { ok: true, json: async () => ({ videos: [video] }) };
+  } });
+  await lookup(scene);
+  const firstRun = calls;
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  await lookup(scene);
+  assert.ok(calls > firstRun, "a stale pool must be refetched instead of served forever");
+});
+
+test("trusted uploader pools expire so new uploads are seen without a restart", async () => {
+  let ids = ["ABC123"];
+  const loader = createEpornerTrustedPoolLoader({ maxPages: 1, poolTtlMs: 20, fetchImpl: async (url) => {
+    if (String(url).includes("/uploaded-videos/")) return { ok: true, text: async () =>
+      ids.map((id) => `<a href="/video-${id}/example/">upload</a>`).join("") };
+    const id = new URL(url).searchParams.get("id");
+    return { ok: true, json: async () => ({ ...video, title: `Maddie ${id}`,
+      url: `https://www.eporner.com/video-${id}/example/`, embed: `https://www.eporner.com/embed/${id}/` }) };
+  } });
+  const trustedScene = { ...scene, releaseDate: "2026-09-20" };
+  assert.equal((await loader("Vovick17", trustedScene)).length, 1);
+  ids = ["ABC123", "DEF456"];
+  assert.equal((await loader("Vovick17", trustedScene)).length, 1);
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal((await loader("Vovick17", trustedScene)).length, 2);
+});

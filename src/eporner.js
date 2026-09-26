@@ -4,16 +4,38 @@ import { configuredSceneCode } from "./matching-config.js";
 
 const API_URL = "https://www.eporner.com/api/v2/video/search/";
 const VIDEO_URL = "https://www.eporner.com/api/v2/video/id/";
+const POOL_TTL_MS = 5 * 60_000;
+const POOL_CACHE_LIMIT = 512;
+
+/**
+ * Deduplicate concurrent lookups for a short window. Entries expire so a long-lived
+ * lookup still observes new uploads, a rejection is evicted at once so one transient
+ * error cannot disable the source for later scenes, and the map stays bounded.
+ */
+function createExpiringPoolCache({ ttlMs = POOL_TTL_MS, limit = POOL_CACHE_LIMIT } = {}) {
+  const entries = new Map();
+  return function cached(key, load) {
+    const now = Date.now();
+    const entry = entries.get(key);
+    if (entry && now - entry.createdAt < ttlMs) return entry.value;
+    entries.delete(key);
+    const value = Promise.resolve().then(load);
+    entries.set(key, { createdAt: now, value });
+    value.catch(() => { if (entries.get(key)?.value === value) entries.delete(key); });
+    if (entries.size > limit) entries.delete(entries.keys().next().value);
+    return value;
+  };
+}
 
 /** Walk an uploader's newest profile pages, then hydrate each post with the public video API. */
-export function createEpornerTrustedPoolLoader({ fetchImpl = fetch, maxPages = 40 } = {}) {
-  const cache = new Map();
+export function createEpornerTrustedPoolLoader({ fetchImpl = fetch, maxPages = 40, poolTtlMs } = {}) {
+  const cached = createExpiringPoolCache({ ttlMs: poolTtlMs });
   return async (account, scene) => {
     if (!/^[A-Za-z0-9_-]+$/.test(account)) return [];
     const cutoff = Date.parse(scene.releaseDate);
     const key = `${account}:${Number.isFinite(cutoff) ? cutoff : "unknown"}`;
-    if (!cache.has(key)) cache.set(key, (async () => {
-      const videos = new Map();
+    const videos = await cached(key, async () => {
+      const collected = new Map();
       for (let page = 1; page <= maxPages; page++) {
         const profile = new URL(`https://www.eporner.com/profile/${encodeURIComponent(account)}/uploaded-videos/`);
         if (page > 1) profile.searchParams.set("page", String(page));
@@ -21,7 +43,7 @@ export function createEpornerTrustedPoolLoader({ fetchImpl = fetch, maxPages = 4
         if (!response.ok) throw new Error(`Eporner profile failed with HTTP ${response.status}`);
         const html = await response.text();
         const ids = [...html.matchAll(/(?:https?:\/\/www\.eporner\.com)?\/video-([A-Za-z0-9]+)(?:\/|["'?#])/g)]
-          .map((match) => match[1]).filter((id) => !videos.has(id));
+          .map((match) => match[1]).filter((id) => !collected.has(id));
         if (!ids.length) break;
         const pageVideos = [];
         for (const id of ids) {
@@ -33,7 +55,7 @@ export function createEpornerTrustedPoolLoader({ fetchImpl = fetch, maxPages = 4
             if (!detail.ok) continue;
             const video = await detail.json();
             if (video && validEpornerUrl(video.url) && validEpornerEmbedUrl(video.embed)) {
-              videos.set(id, video);
+              collected.set(id, video);
               pageVideos.push(video);
             }
           } catch { /* A missing post must not hide other uploads. */ }
@@ -43,9 +65,8 @@ export function createEpornerTrustedPoolLoader({ fetchImpl = fetch, maxPages = 4
           return Number.isFinite(added) && added < cutoff - 86_400_000;
         })) break;
       }
-      return [...videos.values()];
-    })().catch((error) => { cache.delete(key); throw error; }));
-    const videos = await cache.get(key);
+      return [...collected.values()];
+    });
     return Number.isFinite(cutoff) ? videos.filter((video) => {
       const added = Date.parse(video.added);
       return !Number.isFinite(added) || added >= cutoff - 86_400_000;
@@ -84,24 +105,21 @@ export function buildEpornerQueries(scene) {
   return [...new Set([...names, scene.creatorStudio ? null : scene.studio, code, title].filter(Boolean))];
 }
 
-export function createEpornerLookup({ fetchImpl = fetch, trustedPoolLoader = null, trustedUploaders = trustedEpornerUploaders } = {}) {
-  const pools = new Map();
-  async function pool(query) {
-    if (!pools.has(query)) pools.set(query, (async () => {
-      const url = new URL(API_URL);
-      url.searchParams.set("query", query);
-      url.searchParams.set("per_page", "1000");
-      url.searchParams.set("page", "1");
-      url.searchParams.set("order", "latest");
-      url.searchParams.set("format", "json");
-      const response = await fetchImpl(url, { headers: { accept: "application/json" } });
-      if (!response.ok) throw new Error(`Eporner search failed with HTTP ${response.status}`);
-      const data = await response.json();
-      if (!data || !Array.isArray(data.videos)) throw new Error("Eporner returned an invalid response");
-      return data.videos;
-    })());
-    return pools.get(query);
-  }
+export function createEpornerLookup({ fetchImpl = fetch, trustedPoolLoader = null, trustedUploaders = trustedEpornerUploaders, poolTtlMs } = {}) {
+  const cached = createExpiringPoolCache({ ttlMs: poolTtlMs });
+  const pool = (query) => cached(query, async () => {
+    const url = new URL(API_URL);
+    url.searchParams.set("query", query);
+    url.searchParams.set("per_page", "1000");
+    url.searchParams.set("page", "1");
+    url.searchParams.set("order", "latest");
+    url.searchParams.set("format", "json");
+    const response = await fetchImpl(url, { headers: { accept: "application/json" } });
+    if (!response.ok) throw new Error(`Eporner search failed with HTTP ${response.status}`);
+    const data = await response.json();
+    if (!data || !Array.isArray(data.videos)) throw new Error("Eporner returned an invalid response");
+    return data.videos;
+  });
   return async (scene) => {
     if (!Number.isFinite(scene.durationSec)) return null;
     const results = await Promise.allSettled(buildEpornerQueries(scene).map(pool));
