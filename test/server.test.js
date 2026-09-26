@@ -192,6 +192,26 @@ test("manual refresh returns while Sxyprn matching continues", async () => {
   });
 });
 
+test("translation backfills in the background and never blocks the sync response", async () => {
+  let finishTranslation;
+  let translationCalls = 0;
+  const pending = new Promise((resolve) => { finishTranslation = resolve; });
+  const catalogue = { lastChecked: "2026-09-26T00:00:00.000Z", studios: [], scenes: [{ id: "madouqu:1", title: "神秘少女", originalTitle: "神秘少女", titleTranslated: false }] };
+  await withServer({
+    syncCatalogue: async () => catalogue,
+    translateCatalogue: async () => { translationCalls += 1; await pending; },
+  }, async (origin) => {
+    const started = Date.now();
+    const refreshed = await fetch(`${origin}/api/refresh`, { method: "POST" });
+    assert.equal(refreshed.status, 200);
+    assert.ok(Date.now() - started < 1000, "the refresh returns immediately, not after the LLM pass");
+    assert.equal((await refreshed.json()).lastChecked, catalogue.lastChecked);
+    assert.ok(await waitFor(() => translationCalls === 1), "translation starts in the background after the sync");
+    finishTranslation();
+    await settle();
+  });
+});
+
 test("video endpoint warms and caches a stream, then proxies range requests", async () => {
   const directory = await mkdtemp(join(tmpdir(), "liszt-server-video-"));
   const path = join(directory, "catalogue.json");

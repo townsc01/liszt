@@ -178,6 +178,12 @@ export async function enrichSxyprnLinks(scenes, previousScenes, lookup, { now = 
     // A source refresh rebuilds the record from the adapter, so carry the dead-link history
     // forward - it is additive state the adapters know nothing about.
     const priorDead = Array.isArray(prior?.deadVideoUrls) && prior.deadVideoUrls.length ? { deadVideoUrls: prior.deadVideoUrls } : {};
+    // Per-lane matcher contract (docs/specs/link-sources.md): a lane that declares NO
+    // matcher (videoMatching === false, e.g. madouqu) never enters tube resolution.
+    if (scene.videoMatching === false) {
+      output.push({ ...scene, ...priorDead, ...(Array.isArray(prior?.videoUrls) && prior.videoUrls.length ? { videoUrls: prior.videoUrls } : {}) });
+      continue;
+    }
     // A scene whose last live link died re-enters resolution, so the lookup can offer that same
     // URL again. Keep it dead: videoUrls must stay live-links-only and the dead array keeps it.
     const deadUrls = new Set((prior?.deadVideoUrls || []).map((link) => link.url));

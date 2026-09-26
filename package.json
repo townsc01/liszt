@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "test": "node --test test/*.test.js",
     "sync": "node src/sync.js",
-    "backfill:sxyprn": "node scripts/backfill-sxyprn.mjs"
+    "backfill:sxyprn": "node scripts/backfill-sxyprn.mjs",
+    "backfill:madouqu": "node scripts/backfill-madouqu.mjs",
+    "backfill:translate": "node scripts/backfill-translate.mjs"
   },
   "engines": {
     "node": ">=20.18.1"

@@ -37,6 +37,12 @@ When a TPDB record is missing duration, release date, or performers, Liszt immed
 
 To add another studio, implement and register an adapter for its chosen source, add representative fixtures and parsing tests, then run `npm test` and `npm run sync`. Inspect `data/catalogue.json` and the studio's refresh status. A source shared by several studios could instead be implemented as a reusable adapter.
 
+### Lanes
+
+Some sources are catalogue *lanes* rather than single studios: one adapter covers many labels and emits its own per-label `studioId`/`studio` (the watchlist groups and filters by those). **Madouqu** (`src/studios/madouqu.js`) is the metadata-only mainland/Taiwan lane: it walks the madouqu.com WordPress REST API for its anal terms, filters titles through the spec's safety, trans, and penetrative-only lexicons, and ships **no playback links and no matcher** (`matcher: null`, `videoMatching: false`) - the tube-findability measurement was 0/20 on both sources, so sync never runs tube matching over its scenes. Its label display names come from a warm-start romanisation table; an unmapped category is named once by the LLM pass and cached, and the durable name is never re-derived. Per-label statuses are published alongside the adapter status. `npm run backfill:madouqu` walks all pages of all terms for the initial import.
+
+Translation lives in the shared `src/translate.js`: a glossary pass first (a fully-resolved title never reaches the LLM), then an optional batched OpenRouter pass (many titles per call). It is **never on the boot or sync path**: sync serves untranslated titles immediately, the server starts the backfill in the background after enrichment, and results persist durably in a committed cache (`data/translations.json`, `LISZT_TRANSLATIONS_PATH` to override). With no `OPENROUTER_API_KEY` the pass degrades cleanly to glossary-only, marks the rest `untranslated`, and produces no error banner or sync failure. `npm run backfill:translate` runs the pass over the stored catalogue.
+
 ## Run and deploy
 
 Use Node.js 20.18.1 or newer:

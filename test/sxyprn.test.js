@@ -115,6 +115,17 @@ test("existing links survive failures and refreshes but old Eporner fields are r
   assert.match(renderSceneLinks(scene), /Source ↗/);
 });
 
+test("a metadata-only lane renders its source link but no playback link or embed", () => {
+  const madouqu = { id: "madouqu:1", sourceSceneId: "1", studioId: "madouqu-xb", studio: "Xingba Media",
+    title: "Wife anal sex", originalTitle: "人妻肛交", releaseDate: "2026-09-22", performers: [],
+    releaseUrl: "https://madouqu.com/video/xb6340/", videoMatching: false };
+  const links = renderSceneLinks(madouqu);
+  assert.match(links, /Source ↗/);
+  assert.match(links, /https:\/\/madouqu\.com\/video\/xb6340\//);
+  assert.doesNotMatch(links, /Sxyprn|Eporner/, "no playback link on a no-matcher lane");
+  assert.equal(topVideoLink(madouqu), null, "no playable thumbnail, so the row is not a watch link");
+});
+
 test("legacy sxyprnUrls-only scenes stay playable on the read path", () => {
   const legacy = { ...scene, sxyprnUrls: [url], sxyprnCheckedAt: "2026-09-23T12:00:00.000Z" };
   assert.equal(topSxyprnUrl(legacy), url);

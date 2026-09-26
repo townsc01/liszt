@@ -13,7 +13,13 @@ export function validateResult(adapter, result) {
   if (!result.scenes.length && result.verifiedEmpty !== true) throw new Error("Suspicious empty extraction (not explicitly verified)");
   return result.scenes.map((scene) => {
     if (!scene.sourceSceneId || !scene.releaseDate || !scene.title) throw new Error("Scene is missing sourceSceneId, releaseDate, or title");
-    return { ...scene, id: `${adapter.id}:${scene.sourceSceneId}`, studioId: adapter.id, studio: adapter.name,
-      ...(adapter.creatorStudio ? { creatorStudio: true } : {}) };
+    // A lane may emit its own per-label studio identity (madouqu); default to the
+    // adapter's identity only when the scene carries none.
+    return { ...scene, id: `${adapter.id}:${scene.sourceSceneId}`,
+      studioId: scene.studioId || adapter.id, studio: scene.studio || adapter.name,
+      ...(adapter.creatorStudio ? { creatorStudio: true } : {}),
+      // Per-lane matcher contract (docs/specs/link-sources.md): `matcher: null` declares a
+      // metadata-only lane, so the record rides with matching disabled and sync skips it.
+      ...(adapter.matcher === null ? { videoMatching: false } : {}) };
   });
 }

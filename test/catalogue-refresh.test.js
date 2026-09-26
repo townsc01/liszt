@@ -11,6 +11,7 @@ test("catalogue refresh workflow configuration", () => {
   assert.match(yaml, /workflow_dispatch:/);
   assert.match(yaml, /contents:\s*write/);
   assert.match(yaml, /npm run sync/);
-  assert.match(yaml, /git add data\/catalogue\.json/);
+  assert.match(yaml, /npm run backfill:translate/);
+  assert.match(yaml, /git add data\/catalogue\.json data\/translations\.json/);
   assert.match(yaml, /Refresh live catalogue \[skip ci\]/);
 });

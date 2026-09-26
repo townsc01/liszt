@@ -7,6 +7,7 @@ import { sync } from "./sync.js";
 import { enrichStoredCatalogue, validSxyprnUrl } from "./sxyprn.js";
 import { createLinkVerifier, reverifyStoredCatalogue } from "./reverify.js";
 import { createEpornerLookup, createEpornerTrustedPoolLoader } from "./eporner.js";
+import { createTranslationBackfill } from "./translate-run.js";
 import { createVideoProxy } from "./video-proxy.js";
 import sxyprn from "sxyprn";
 
@@ -16,9 +17,10 @@ const dataPath = process.env.LISZT_DATA_PATH || join(root, "data/catalogue.json"
 const port = Number(process.env.PORT || 10000);
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml" };
 
-export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = () => sync({ paths: [cataloguePath] }), enrichCatalogue = async () => {}, videoDetails = ({ url }) => sxyprn.videos.details({ url }), fetchVideo = fetch, bootSync = false } = {}) {
+export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = () => sync({ paths: [cataloguePath] }), enrichCatalogue = async () => {}, translateCatalogue = async () => {}, videoDetails = ({ url }) => sxyprn.videos.details({ url }), fetchVideo = fetch, bootSync = false } = {}) {
   let refreshInProgress = null;
   let enrichmentInProgress = null;
+  let translationInProgress = null;
   let generation = 0;
   const videoProxy = createVideoProxy({ videoDetails, fetchImpl: fetchVideo });
 
@@ -31,12 +33,24 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
     return enrichmentInProgress;
   }
 
+  // Translation is never on the boot or sync path: it backfills after enrichment, in
+  // the background, batched and glossary-first. A missing key degrades to
+  // glossary-only rather than failing anything.
+  function startTranslation() {
+    if (translationInProgress) return translationInProgress;
+    translationInProgress = Promise.resolve().then(() => translateCatalogue())
+      .catch((error) => console.error("Translation backfill failed:", error))
+      .finally(() => { translationInProgress = null; });
+    return translationInProgress;
+  }
+
   function startSync() {
     refreshInProgress ||= Promise.resolve().then(async () => {
       generation++;
       if (enrichmentInProgress) await enrichmentInProgress;
       const data = await syncCatalogue();
       startEnrichment();
+      startTranslation();
       return data;
     }).finally(() => { refreshInProgress = null; });
     return refreshInProgress;
@@ -49,6 +63,7 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
     startSync().catch((error) => {
       console.error("Boot sync failed:", error);
       startEnrichment();
+      startTranslation();
     });
   }
 
@@ -131,7 +146,11 @@ export function createCatalogueEnricher({ path = dataPath, verifyLink = createLi
   };
 }
 
-export const server = createLisztServer({ bootSync: true, enrichCatalogue: createCatalogueEnricher() });
+export const server = createLisztServer({
+  bootSync: true,
+  enrichCatalogue: createCatalogueEnricher(),
+  translateCatalogue: createTranslationBackfill({ path: dataPath }),
+});
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   // Boot-only cadence for the prototype: a waking instance heals its own catalogue
