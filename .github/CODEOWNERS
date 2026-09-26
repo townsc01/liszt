@@ -1,0 +1,26 @@
+# CODEOWNERS
+# This file defines who owns which parts of the codebase.
+# When a PR touches files matching these patterns, the specified owners are automatically requested for review.
+
+# Matching algorithm experts
+/src/matching.js @owner-team
+/src/matching-config.js @owner-team
+
+# sxyprn integration
+/src/sxyprn.js @owner-team
+/src/sxyprn-overrides.js @owner-team
+
+# eporner integration
+/src/eporner.js @owner-team
+
+# Studio adapters
+/src/studios/ @owner-team
+
+# CI/CD workflows
+/.github/workflows/ @owner-team
+
+# Specs
+/docs/specs/ @owner-team
+
+# Tests
+/test/ @owner-team
