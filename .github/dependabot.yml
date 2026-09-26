@@ -1,0 +1,42 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "security"
+    groups:
+      development-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+      production-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "production"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      - dependency-type: "direct"
+        update-type: "version-update:semver-major"
+      - dependency-type: "indirect"
+        update-type: "version-update:semver-major"
+    auto-merge:
+      - match:
+          update-type: "patch"
+        commit-message: "chore(deps): merge dependabot patch update for {{dependency-name}}"
+      - match:
+          update-type: "minor"
+        commit-message: "chore(deps): merge dependabot minor update for {{dependency-name}}"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    rebase-strategy: "auto"
