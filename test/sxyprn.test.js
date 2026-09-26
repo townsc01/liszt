@@ -153,13 +153,19 @@ test("videoUrls remain authoritative when both link shapes are present", () => {
   assert.match(rendered, /Sxyprn 2 ↗/);
 });
 
-test("the bundled catalogue's legacy-only scenes resolve to a playable link", async () => {
+test("every bundled Sxyprn-backed scene resolves a playable link, in both link shapes", async () => {
   const catalogue = JSON.parse(await readFile(new URL("../data/catalogue.json", import.meta.url), "utf8"));
-  const legacyScenes = catalogue.scenes.filter((item) => !item.videoUrls?.length && item.sxyprnUrls?.length);
-  assert.equal(legacyScenes.length, 92);
-  for (const item of legacyScenes) {
-    assert.ok(validSxyprnUrl(topSxyprnUrl(item)), `${item.id} should resolve a legacy Sxyprn link`);
+  const sxyprnScenes = catalogue.scenes.filter((item) =>
+    item.videoUrls?.some((link) => link.source === "sxyprn") || item.sxyprnUrls?.length);
+  assert.ok(sxyprnScenes.length > 0, "the bundled catalogue carries Sxyprn-backed scenes to check");
+  for (const item of sxyprnScenes) {
+    const resolved = topSxyprnUrl(item);
+    assert.ok(validSxyprnUrl(resolved), `${item.id} should resolve a Sxyprn link`);
     assert.equal(topVideoLink(item).source, "sxyprn");
+    // #54: a pre-migration record carrying only the legacy sxyprnUrls shape must stay
+    // playable through the read-path fallback, so this covers both shapes over real data.
+    const legacy = { ...item, videoUrls: undefined, sxyprnUrls: [resolved] };
+    assert.equal(topSxyprnUrl(legacy), resolved, `${item.id} should resolve from the legacy shape`);
   }
 });
 
