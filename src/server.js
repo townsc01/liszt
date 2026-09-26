@@ -42,9 +42,13 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
   }
 
   // Boot sync must never reject into the process: a failed boot leaves the server serving
-  // the bundled/retained catalogue, exactly like a failed refresh click.
+  // the bundled/retained catalogue, exactly like a failed refresh click. Enrichment still
+  // starts on failure so the retained scenes get re-checked instead of 404ing on /api/video.
   function startBootSync() {
-    startSync().catch((error) => console.error("Boot sync failed:", error));
+    startSync().catch((error) => {
+      console.error("Boot sync failed:", error);
+      startEnrichment();
+    });
   }
 
   const app = createServer(async (request, response) => {
