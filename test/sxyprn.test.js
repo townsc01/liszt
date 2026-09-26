@@ -8,7 +8,7 @@ import { renderSceneLinks } from "../public/scene-links.js";
 import { isSxyprnVideo, topSxyprnUrl, topVideoLink } from "../public/scene-video.js";
 import { sync } from "../src/sync.js";
 
-const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Double Anal Debut", releaseDate: "2026-09-20", performers: ["Lana Wills"], durationSec: 1800, releaseUrl: "https://source.example/1" };
+const scene = { id: "studio:1", sourceSceneId: "1", studioId: "studio", studio: "Studio", title: "Lana Wills Studio Scene", releaseDate: "2026-09-20", performers: ["Lana Wills"], durationSec: 1800, releaseUrl: "https://source.example/1" };
 const url = "https://sxyprn.com/post/6ab5422fa84b6.html";
 const other = "https://sxyprn.com/post/6aaad4186a540.html";
 const candidate = (videoUrl = url, title = scene.title, isExternal = false) => ({ url: videoUrl, title, isExternal, durationSeconds: 1800 });
@@ -79,8 +79,8 @@ test("Sxyprn performer normalization admits retitled posts for non-coded scenes"
 });
 
 test("Mambo scene codes recover posts with an alias or missing performer metadata", async () => {
-  const coded = { ...scene, id: "mambo-perv:4846367", studioId: "mambo-perv", title: "Riley Rabbit pale skin white Brazilian goth fucked by a big black cock OB632 featuring Negro Top Oficial", performers: [] };
-  const postTitle = "Riley Rabbit pale skin white Brazilian goth fucked by a big black cock OB632";
+  const coded = { ...scene, id: "mambo-perv:4846367", studioId: "mambo-perv", title: "Riley Rabbit pale skin white Brazilian goth scene OB632 featuring Supporting Performer", performers: [] };
+  const postTitle = "Riley Rabbit pale skin white Brazilian goth scene OB632";
   const source = client({ videos: [candidate(url, postTitle)], detailTitle: postTitle });
   assert.deepEqual(await createSxyprnLookup({ client: source })(coded), [url]);
   assert.deepEqual(source.calls[0], ["search", "riley-rabbit-pale-skin-white"]);
@@ -90,7 +90,7 @@ test("Mambo scene codes recover posts with an alias or missing performer metadat
 
 test("unrelated, unverified and unsafe hits never become links", async () => {
   assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate(url, "Someone Else Relaxing Massage Debut")] }) })(scene), []);
-  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate(url, "Double Anal Debut With Another Person")] }) })(scene), []);
+  assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate(url, "Studio Scene With Another Person")] }) })(scene), []);
   assert.deepEqual(await createSxyprnLookup({ client: client({ videos: [candidate("https://sxyprn.com.evil.example/post/6ab5422fa84b6.html")] }) })(scene), []);
   await assert.rejects(createSxyprnLookup({ client: client({ failSearch: true }) })(scene), /Sxyprn search unavailable/);
   await assert.rejects(createSxyprnLookup({ client: client({ failDetails: true }) })(scene), /Sxyprn post verification unavailable/);

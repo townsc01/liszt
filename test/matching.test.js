@@ -4,9 +4,9 @@ import { hasOpenIdentity, pickMatch, titleStem } from "../src/matching.js";
 import { buildSxyprnQueries } from "../src/sxyprn.js";
 import { configuredSceneCode } from "../src/matching-config.js";
 
-const scene = (overrides = {}) => ({ title: "Beauty Saves Marriage With Anal", performers: ["Geishakyd"],
+const scene = (overrides = {}) => ({ title: "Beauty Saves Marriage At Last", performers: ["Geishakyd"],
   studio: "Tushy", releaseDate: "2026-09-24", durationSec: 2503, ...overrides });
-const candidate = (overrides = {}) => ({ title: "Geishakyd Beauty Saves Marriage With Anal", duration: 2504,
+const candidate = (overrides = {}) => ({ title: "Geishakyd Beauty Saves Marriage At Last", duration: 2504,
   url: "https://tube/one", uploader: "one", views: 10, added: "2026-09-25", ...overrides });
 
 test("the open gate requires duration and performer or verbatim-title identity", () => {
@@ -14,7 +14,7 @@ test("the open gate requires duration and performer or verbatim-title identity",
   assert.equal(pickMatch(scene(), [candidate({ duration: 2506 })]), null);
   assert.equal(pickMatch(scene(), [candidate({ title: "Tushy Someone Else" })]), null);
   assert.equal(pickMatch(scene({ durationSec: null }), [candidate()]), null);
-  assert.equal(hasOpenIdentity(scene({ performers: [] }), "Repost - Beauty Saves Marriage With Anal full"), true);
+  assert.equal(hasOpenIdentity(scene({ performers: [] }), "Repost - Beauty Saves Marriage At Last full"), true);
 });
 
 test("single-token performers are queried and creator studios omit studio queries", () => {
@@ -29,7 +29,7 @@ test("scene-code retrieval hints are data-backed and do not apply to other studi
 });
 
 test("trusted pools allow first names but enforce MMDD and the duration gate", () => {
-  const maya = scene({ title: "20Y Beautiful Brazilian First Double Anal", performers: ["Maya Bell"], durationSec: 2115, releaseDate: "2026-09-22" });
+  const maya = scene({ title: "20Y Beautiful Brazilian First Studio Scene", performers: ["Maya Bell"], durationSec: 2115, releaseDate: "2026-09-22" });
   assert.ok(pickMatch(maya, [candidate({ title: "MAYA922", duration: 2115 })], { trustedPool: true }));
   assert.ok(pickMatch(maya, [candidate({ title: "MAYA922 2", duration: 2115 })], { trustedPool: true }));
   assert.equal(pickMatch(maya, [candidate({ title: "MAYA924 2", duration: 2115 })], { trustedPool: true }), null);
@@ -40,7 +40,7 @@ test("trusted pools allow first names but enforce MMDD and the duration gate", (
 
 test("repost decorations dedupe, while conflicting identities from different uploaders reject", () => {
   assert.equal(titleStem("{NEW} A title #one #two"), titleStem("A title"));
-  const duplicate = candidate({ title: "{NEW} Geishakyd Beauty Saves Marriage With Anal #tushy", uploader: "one", views: 20 });
+  const duplicate = candidate({ title: "{NEW} Geishakyd Beauty Saves Marriage At Last #tushy", uploader: "one", views: 20 });
   assert.equal(pickMatch(scene(), [candidate(), duplicate]), duplicate);
   const conflict = candidate({ title: "Geishakyd unrelated upload", uploader: "two", url: "https://tube/two" });
   assert.equal(pickMatch(scene(), [candidate(), conflict]), null);
@@ -54,9 +54,9 @@ test("structured Sxyprn authors preserve cross-uploader disagreement", () => {
 });
 
 test("compact repost dates do not create a second title identity", () => {
-  assert.equal(titleStem("Tushy 26 09 06 Maddie Wren Perfect Hottie Wants Anal"),
-    titleStem("Tushy Maddie Wren Perfect Hottie Wants Anal"));
-  const current = scene({ performers: ["Maddie Wren"], title: "Perfect Hottie Wants Anal" });
-  assert.ok(pickMatch(current, [candidate({ title: "Tushy 26 09 06 Maddie Wren Perfect Hottie Wants Anal", uploader: "one" }),
-    candidate({ title: "Tushy Maddie Wren Perfect Hottie Wants Anal", uploader: "two", url: "https://tube/two" })]));
+  assert.equal(titleStem("Tushy 26 09 06 Maddie Wren Perfect Model Wants The Scene"),
+    titleStem("Tushy Maddie Wren Perfect Model Wants The Scene"));
+  const current = scene({ performers: ["Maddie Wren"], title: "Perfect Model Wants The Scene" });
+  assert.ok(pickMatch(current, [candidate({ title: "Tushy 26 09 06 Maddie Wren Perfect Model Wants The Scene", uploader: "one" }),
+    candidate({ title: "Tushy Maddie Wren Perfect Model Wants The Scene", uploader: "two", url: "https://tube/two" })]));
 });

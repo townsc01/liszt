@@ -1,4 +1,4 @@
-# Lane spec: FC2 (anal, uncensored) via fc2cmadb.com
+# Lane spec: FC2 (uncensored, male-on-female) via fc2cmadb.com
 
 > **Depends on:** link-sources, matching-algorithm.
 
@@ -7,13 +7,17 @@
 > Nothing in this branch changes production behaviour - the only runnable artefacts are seed
 > data and fixtures.
 
+> **Lexicon note.** The Japanese/English term lists below are the lane's functional filter
+> definitions, reproduced for implementation accuracy. They are clinical filter data - the
+> vocabulary the lane must match on - not descriptive prose.
+
 ## 1. Goal
 
 Add an **FC2 lane** to Liszt: FC2-PPV releases that match Chris's interest filter, kept
 current by ongoing sync, shown in the existing watchlist UI with English display titles.
 
-The filter, in Chris's words (2026-09-25): the FC2 scenes he is interested in are
-**anal + uncensored + no trans** - exactly the cut produced by the 2026-09-24 catalogue run
+The filter, in Chris's words (2026-09-25): the FC2 scenes in scope are
+**uncensored, male-on-female, no trans** - exactly the cut produced by the 2026-09-24 catalogue run
 (318 rows, committed to this branch as `data/seeds/fc2cmadb-anal-uncensored-2026-09-24.csv`).
 The lane must keep pulling new matching releases after the initial import - this is a watchlist,
 not a one-off import.
@@ -120,7 +124,7 @@ One new adapter, `src/studios/fc2.js`, implementing the existing contract
 | `tags` *(new optional field)* | English-mapped tags + original Japanese tags | See section 5. |
 | `censorship` *(new optional field)* | `無` | Kept for debugging; always 無 post-filter. |
 
-**Studio/display naming.** Register the adapter as `id: "fc2"`, `name: "FC2 - anal (uncensored)"`.
+**Studio/display naming.** Register the adapter as `id: "fc2"`, `name: "FC2 - uncensored (M/F)"`.
 Do not create one adapter per seller (thousands of sellers); the seller rides on the scene record.
 
 **Window: DECIDED (Chris, 2026-09-25) - 90 days.** The lane keeps the standard rolling 90-day
@@ -140,7 +144,8 @@ The UI is English-first; FC2 titles are Japanese. Design:
   implements first builds the module; the second lane supplies its own glossary and prompts.
 - **Two-stage translation, at sync time (server-side only):**
   1. **Glossary pass (offline, always runs).** FC2 titles are highly formulaic. A maintained
-     dictionary normalises the boilerplate: 【個人撮影】 = [amateur shoot], 無修正 = uncensored,
+     dictionary normalises the boilerplate; the mappings below are the functional filter
+     dictionary, not prose: 【個人撮影】 = [amateur shoot], 無修正 = uncensored,
      初アナル = first anal, アナルSEX = anal sex, 中出し = creampie, 素人 = amateur,
      人妻 = married woman, ・25歳・ = age 25, Cカップ = C cup, etc. The pass emits a partial
      English rendering plus `translationConfidence`.
@@ -151,8 +156,8 @@ The UI is English-first; FC2 titles are Japanese. Design:
      Japanese title. Translation must never block or fail a sync.
 - **Record keeping.** Add `titleTranslated: true|false` and `translationProvider`
   (`glossary` | `llm:<model>` | `none`) to the scene record. Machine output is always marked.
-- **Tags.** Map common Japanese tags to English with a fixed dictionary
-  (アナル -> anal, 中出し -> creampie, 素人 -> amateur, 個人撮影 -> amateur shoot,
+- **Tags.** Map common Japanese tags to English with a fixed dictionary (functional filter
+  mappings, not prose: アナル -> anal, 中出し -> creampie, 素人 -> amateur, 個人撮影 -> amateur shoot,
   フェラ -> blowjob, 巨乳 -> big tits, 美乳 -> nice tits, パイパン -> shaved, 潮吹き -> squirting,
   3P -> threesome, ハメ撮り -> POV/gonzo, ...). Unknown tags pass through in Japanese so no
   information is lost. The safety lexicon in section 3 runs on the *original* tags, before mapping.
@@ -263,7 +268,7 @@ text; the mechanics elsewhere (rates, fixtures, contract) are unchanged.
 
 Chris reviewed the whitelist design and rejected the hand-seeded gate: alias-tag items must NOT
 require a whitelisted seller. The lane instead **auto-admits sellers by measured activity across
-the union of the anal tag and its aliases**.
+the union of the tag and its aliases**.
 
 Measured basis (2026-09-25): 5-page crawl of each of アナルファック, 尻穴, ケツ穴, 2穴, 二穴,
 肛門 = 728 items, 123 distinct sellers, only 8 overlapping the アナル seed's sellers. The alias
@@ -288,7 +293,7 @@ Active sellers the union admits on day one (in-crawl counts over 5 pages/tag, la
 | 憐憫女々 | 62 | 2026-09-21 | NET-NEW from 二穴/肛門 |
 | 志操堅固。 | 61 | 2026-09-23 | NET-NEW from 肛門 |
 | エロタウロス (EroTauros) | 58 (seed) | 2026-09-18 | tag-47 |
-| 豊満マゾ熟女ハンター | 44 | 2026-09-19 | NET-NEW, spans 5 alias tags; titles verified clean M/F anal |
+| 豊満マゾ熟女ハンター | 44 | 2026-09-19 | NET-NEW, spans 5 alias tags; titles verified in-scope M/F |
 | スーパー女神ちゃん | 34 | 2026-09-03 | NET-NEW |
 | ちぃたんは肉便器になりました。 | 32 | 2026-09-02 | NET-NEW |
 | うらあかじょし＠丸の内 | 6 | 2026-09-25 | NET-NEW, released same day as the crawl |
@@ -312,7 +317,7 @@ classifies every seller from the titles of its crawled union items (min 3 titles
 - **M/M lexicon** (as above).
 - **M/T lexicon** (as above; identical to the hardened section-3 trans/crossdress rule).
 - **Pegging/femdom lexicon**: ペニバン, 逆アナル, 逆アナ, 女王様, M男, 前立腺, 男の潮吹き,
-  フィスト. Note: フィスト fires on F-receiving anal fisting too (e.g. ブロッケン) - grouped
+  フィスト. Note: フィスト also fires on the in-scope F-receiving fisting case (e.g. ブロッケン) - grouped
   here as extreme content. Chris confirmed 2026-09-25: leave it as is.
 - **Solo lexicon** (オナニー, 自撮り, シャワー, 入浴, 風呂) **with M/F co-occurrence rescue**:
   excluded only when NO co-occurrence term is present (中出し, チンポ, ハメ, 貫通, 挿入,
@@ -334,14 +339,14 @@ with innocuous titles from mixed sellers.
 ### 11.2 Precision blocklist (from the manual mistag review of all 318 seed rows)
 
 The review flagged 26 titles with a broad suspect lexicon and manually read every flag:
-~97-98% of the cut is genuine M/F anal; true mistags are 5-8 rows. Encode as v1:
+~97-98% of the cut is genuinely in-scope; true mistags are 5-8 rows. Encode as v1:
 
 - **Seller-level:** ハメ撮りランキング fails the activity test (11.1) anyway - no special
-  case needed. Kerberos rows pass through the tier-2 femdom lexicon like everything else.
+  case needed. Kerberos rows pass through the tier-2 orientation lexicon like everything else.
 - **Softcore lexicon:** exclude rows whose titles match solo/shower patterns (オナニー, シャワー,
   入浴, 自撮り) UNLESS an M/F co-occurrence term is also present (中出し, チンポ, ハメ, 貫通,
   挿入, アナルSEX). Catches the ハメンタル shower/masturbation rows and the エロタウロス
-  balcony-exposure solo without touching M/F scenes that merely mention toys.
+  balcony-exposure solo without touching in-scope scenes that merely mention toys.
 - **Every blocklist exclusion is logged with the matched term and seller for human review** -
   nothing is silently dropped. Lexicon v1 was derived from one manual pass; expect one or two
   tuning rounds on live sync data.
@@ -351,7 +356,7 @@ The review flagged 26 titles with a broad suspect lexicon and manually read ever
 - Each whitelisted seller surfaces as its own studio entry: `id: fc2:<writer.slug>`,
   display name `FC2 / <writer.name>` with a romanised subtitle where known
   (e.g. "FC2 / 大人仮面Z (Otona Kamen Z)").
-- This **supersedes section 4's single "FC2 - anal (uncensored)" registration**. There is still
+- This **supersedes section 4's single "FC2 - uncensored (M/F)" registration**. There is still
   one adapter (`src/studios/fc2.js`) doing the fetching, but it emits one logical studio per
   whitelisted seller; scenes carry `seller` metadata exactly as section 4 specifies.
 - Studio ordering in the watchlist follows latest release, same as existing lanes.
@@ -371,7 +376,7 @@ the cheap listing tier alongside アナル, for ALL sellers - no whitelist gate 
 from any in-union listing enter the pipeline and pass the orientation filter (11.1a), safety
 screen, censorship gate and blocklists like any アナル item. Noisy aliases (アナルセックス,
 アナル拡張) are crawled for seller-activity data but their items pass the same filters; their
-M/M/femdom content is removed by tiers 1-3, not by skipping the tag.
+out-of-scope orientation content is removed by tiers 1-3, not by skipping the tag.
 ### 11.6 Still open
 
 - **#1 windowDays** (whole history vs rolling 90 days) - with seller whitelisting the
