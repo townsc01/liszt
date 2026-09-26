@@ -15,7 +15,7 @@ const dataPath = process.env.LISZT_DATA_PATH || join(root, "data/catalogue.json"
 const port = Number(process.env.PORT || 10000);
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml" };
 
-export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = () => sync({ paths: [cataloguePath] }), enrichCatalogue = async () => {}, videoDetails = ({ url }) => sxyprn.videos.details({ url }), fetchVideo = fetch } = {}) {
+export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = () => sync({ paths: [cataloguePath] }), enrichCatalogue = async () => {}, videoDetails = ({ url }) => sxyprn.videos.details({ url }), fetchVideo = fetch, bootSync = false } = {}) {
   let refreshInProgress = null;
   let enrichmentInProgress = null;
   let generation = 0;
@@ -28,6 +28,23 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
       .catch((error) => console.error("Sxyprn enrichment failed:", error))
       .finally(() => { enrichmentInProgress = null; });
     return enrichmentInProgress;
+  }
+
+  function startSync() {
+    refreshInProgress ||= Promise.resolve().then(async () => {
+      generation++;
+      if (enrichmentInProgress) await enrichmentInProgress;
+      const data = await syncCatalogue();
+      startEnrichment();
+      return data;
+    }).finally(() => { refreshInProgress = null; });
+    return refreshInProgress;
+  }
+
+  // Boot sync must never reject into the process: a failed boot leaves the server serving
+  // the bundled/retained catalogue, exactly like a failed refresh click.
+  function startBootSync() {
+    startSync().catch((error) => console.error("Boot sync failed:", error));
   }
 
   const app = createServer(async (request, response) => {
@@ -44,14 +61,7 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
           response.writeHead(405, { "content-type": "application/json; charset=utf-8", allow: "POST" });
           return response.end(JSON.stringify({ error: "Method not allowed" }));
         }
-        refreshInProgress ||= Promise.resolve().then(async () => {
-          generation++;
-          if (enrichmentInProgress) await enrichmentInProgress;
-          const data = await syncCatalogue();
-          startEnrichment();
-          return data;
-        }).finally(() => { refreshInProgress = null; });
-        const data = await refreshInProgress;
+        const data = await startSync();
         response.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
         return response.end(JSON.stringify({ ...data, enrichmentPending: !!enrichmentInProgress }));
       }
@@ -93,18 +103,26 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
     }
   });
   app.startEnrichment = startEnrichment;
+  app.startBootSync = startBootSync;
+  // Boot sync is bound to the listening event, not to the CLI entrypoint, so the real
+  // boot path (port bound first, sync in the background) is what the tests exercise.
+  if (bootSync) app.once("listening", startBootSync);
   return app;
 }
 
-export const server = createLisztServer({ enrichCatalogue: (options) => enrichStoredCatalogue(dataPath, {
-  ...options,
-  fallbackLookup: createEpornerLookup({ trustedPoolLoader: createEpornerTrustedPoolLoader() }),
-  onProgress: (scene) => console.log(`Playback sources checked ${scene.id}: ${scene.videoUrls?.length || 0} link(s)`),
-}) });
+export const server = createLisztServer({
+  bootSync: true,
+  enrichCatalogue: (options) => enrichStoredCatalogue(dataPath, {
+    ...options,
+    fallbackLookup: createEpornerLookup({ trustedPoolLoader: createEpornerTrustedPoolLoader() }),
+    onProgress: (scene) => console.log(`Playback sources checked ${scene.id}: ${scene.videoUrls?.length || 0} link(s)`),
+  }),
+});
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  server.listen(port, () => {
-    console.log(`Liszt is listening at http://localhost:${port}`);
-    server.startEnrichment();
-  });
+  // Boot-only cadence for the prototype: a waking instance heals its own catalogue
+  // instead of waiting for a visitor to click Refresh. The port is bound before the
+  // listening event fires, so first paint serves the bundled data and fresh data lands
+  // once the background sync finishes.
+  server.listen(port, () => console.log(`Liszt is listening at http://localhost:${port}`));
 }

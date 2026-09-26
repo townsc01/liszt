@@ -50,6 +50,8 @@ npm start
 
 Open <http://localhost:10000>. `npm run sync` writes `data/catalogue.json`; `LISZT_DATA_PATH` overrides that path, and `PORT` overrides the server port. Deploy the Node server on Render using the same start command. The server serves the dashboard and `GET /api/scenes`; `POST /api/refresh` runs the registered adapters and returns the updated catalogue. The dashboard has a searchable, sortable release ledger, a studio filter, source status, scene links, and a **Refresh data** button. Concurrent refresh requests share one sync.
 
+The server also syncs once on boot, in the background: the port binds first and serves the bundled catalogue immediately, and the sync runs behind it so a waking instance heals its own data instead of waiting for a visitor to click Refresh. A boot sync and a refresh click share the same in-flight guard, so only one sync runs at a time. A failed boot sync behaves like a failed refresh: the server keeps serving the retained catalogue and records the per-studio error. This boot-only cadence is the prototype behaviour; a periodic 6-hour sync is planned for permanent hosting.
+
 Fetching is server-side. The [watchlist mockups](docs/mockups/watchlist.html) are illustrative and contain no live scene data.
 
 ## Playback links

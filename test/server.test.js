@@ -18,6 +18,8 @@ async function withServer(options, callback) {
   }
 }
 
+const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+
 test("POST /api/refresh syncs sources and returns the refreshed catalogue", async () => {
   const catalogue = { lastChecked: "2026-09-24T12:00:00.000Z", studios: [], scenes: [] };
   let calls = 0;
@@ -50,6 +52,91 @@ test("server serves the dashboard and the catalogue API", async () => {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test("boot sync runs in the background without delaying the port binding", async () => {
+  const bundled = { lastChecked: "2026-09-24T12:00:00.000Z", studios: [], scenes: [] };
+  let calls = 0;
+  let finishSync;
+  const pendingSync = new Promise((resolve) => { finishSync = resolve; });
+  const directory = await mkdtemp(join(tmpdir(), "liszt-boot-sync-"));
+  const path = join(directory, "catalogue.json");
+  try {
+    await writeFile(path, JSON.stringify(bundled));
+    await withServer({
+      cataloguePath: path,
+      bootSync: true,
+      syncCatalogue: async () => { calls += 1; await pendingSync; return { lastChecked: "2026-09-25T00:00:00.000Z", studios: [], scenes: [] }; },
+    }, async (origin) => {
+      assert.equal(calls, 1, "boot should have started exactly one sync");
+      const during = await fetch(`${origin}/api/scenes`);
+      assert.equal(during.status, 200);
+      assert.equal((await during.json()).lastChecked, bundled.lastChecked, "the bundled catalogue is served while boot sync is still in flight");
+      finishSync();
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("boot sync and a manual refresh share one in-flight sync", async () => {
+  const catalogue = { lastChecked: "2026-09-25T00:00:00.000Z", studios: [], scenes: [] };
+  let calls = 0;
+  let finishSync;
+  const pendingSync = new Promise((resolve) => { finishSync = resolve; });
+  await withServer({
+    bootSync: true,
+    syncCatalogue: async () => { calls += 1; await pendingSync; return catalogue; },
+  }, async (origin) => {
+    assert.equal(calls, 1, "boot should have started the sync");
+    const refresh = fetch(`${origin}/api/refresh`, { method: "POST" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(calls, 1, "a refresh click must join the boot sync instead of starting a second one");
+    finishSync();
+    const response = await refresh;
+    assert.equal(response.status, 200);
+  });
+  assert.equal(calls, 1);
+});
+
+test("a failed boot sync leaves the server serving the retained catalogue", async () => {
+  const bundled = {
+    lastChecked: "2026-09-24T12:00:00.000Z",
+    studios: [{ id: "tushy", name: "Tushy", authority: { name: "TPDB", url: "https://api.theporndb.net" }, lastSuccessfulRefresh: "2026-09-23T00:00:00.000Z", error: "TPDB_API_KEY is not configured" }],
+    scenes: [],
+  };
+  let calls = 0;
+  const directory = await mkdtemp(join(tmpdir(), "liszt-boot-sync-failure-"));
+  const path = join(directory, "catalogue.json");
+  try {
+    await writeFile(path, JSON.stringify(bundled));
+    await withServer({
+      cataloguePath: path,
+      bootSync: true,
+      syncCatalogue: async () => { calls += 1; throw new Error("TPDB_API_KEY is not configured"); },
+    }, async (origin) => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      assert.equal(calls, 1, "boot should have attempted one sync");
+      const response = await fetch(`${origin}/api/scenes`);
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.lastChecked, bundled.lastChecked, "the retained catalogue survives a failed boot sync");
+      assert.equal(body.studios[0].error, "TPDB_API_KEY is not configured", "the per-studio error state is unchanged");
+      assert.equal((await fetch(origin)).status, 200, "the dashboard still serves after a failed boot sync");
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("boot sync stays off unless the server opts in", async () => {
+  let calls = 0;
+  await withServer({ syncCatalogue: async () => { calls += 1; return { scenes: [] }; } }, async (origin) => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(calls, 0, "an embedded server without bootSync must not sync on start");
+    assert.equal((await fetch(`${origin}/api/scenes`)).status, 200);
+  });
 });
 
 test("manual refresh rejects non-POST requests", async () => {
