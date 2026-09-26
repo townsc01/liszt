@@ -9,9 +9,13 @@ test("catalogue refresh workflow configuration", () => {
   assert.match(yaml, /name:\s*Refresh live catalogue/);
   assert.match(yaml, /cron:\s*['"]0 \*\/*6 \* \* \*['"]/);
   assert.match(yaml, /workflow_dispatch:/);
+  assert.match(yaml, /concurrency:/);
+  assert.match(yaml, /group:\s*catalogue-refresh/);
+  assert.match(yaml, /cancel-in-progress:\s*false/);
   assert.match(yaml, /contents:\s*write/);
   assert.match(yaml, /npm run sync/);
   assert.match(yaml, /npm run backfill:translate/);
   assert.match(yaml, /git add data\/catalogue\.json data\/translations\.json/);
   assert.match(yaml, /Refresh live catalogue \[skip ci\]/);
+  assert.match(yaml, /git pull --rebase origin main/);
 });
