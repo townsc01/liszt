@@ -4,6 +4,7 @@ import { studio as tushy } from "./tushy.js";
 import { studio as bangOriginals } from "./bang-originals.js";
 import { studio as maximoGarcia } from "./maximo-garcia.js";
 import { studio as madouqu } from "./madouqu.js";
+import { studio as julesJordan } from "./jules-jordan.js";
 
 /** The complete set of studio adapters run by the catalogue sync. */
-export const studios = [lancelotStylesEvolution, mamboPerv, tushy, bangOriginals, maximoGarcia, madouqu];
+export const studios = [lancelotStylesEvolution, mamboPerv, tushy, bangOriginals, maximoGarcia, madouqu, julesJordan];
