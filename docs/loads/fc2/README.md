@@ -55,6 +55,17 @@ owns, and do not rebase onto an unmerged branch.
 | `src/studios/fc2.js` | #113 creates; then #107, #105, #106, #108 in that order |
 | `data/catalogue.json` | #113 only; never commit incidental local changes |
 
+## Unattended operation
+
+This lane runs with no human in the loop. The mayor reviews and merges every PR itself,
+resolves every ambiguity itself, and records the decision as a comment on the issue before
+continuing. A worker that cannot resolve something within its load **escalates to the
+mayor, never to a waiting human** — the issue tracker is the record, and the mayor acts on
+it. The only three things that stop the lane rather than proceeding are: a failing safety
+screen or trans/crossdress backstop, an irreversible or destructive git action, or a
+change that would have to leave this lane's file ownership. A missing
+`OPENROUTER_API_KEY` is a contractual degradation path, not a stop.
+
 ## Invariants for every load
 
 1. Branch from **latest `main`**, never from a spec branch or a stacked unmerged branch.

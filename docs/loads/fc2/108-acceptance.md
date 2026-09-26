@@ -66,8 +66,9 @@ network, no live crawl, deterministic:
 - **Never depend on a live crawl.** The full backfill is ~20 hours at the safe rate
   (8-9s per detail page). Nothing in CI may call fc2cmadb.
 - Do not retune the filter to make the numbers match. If a bucket diverges from the
-  spec, that is a finding to raise on #104 or #108, not something to encode as an
-  expectation.
+  spec, that is a finding: report it in a comment on #108, and decide the correction
+  yourself — either the filter or the recorded expectation is wrong, and you say which
+  and why. Never encode a divergence as a silent expectation.
 - One new CSV plus a new test file. No production-code changes in this load — if the
   pipeline needs a seam to be replayable, raise it on the owning issue.
 

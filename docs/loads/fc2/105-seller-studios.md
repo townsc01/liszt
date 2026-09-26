@@ -29,8 +29,8 @@ landed in PR #111 (#65): `validateResult` honours a scene's own `studioId`/`stud
 
 1. **Pick one id separator and use it everywhere.** The id form has to agree with #107's
    prefix resolution in `src/matching-config.js` and with the retention clause below. If
-   #107 has landed, match what it did; if not, agree on it in an issue comment and tell
-   #107.
+   #107 has landed,    match what it did; if not, choose the form, record it in a comment on this issue, and
+   tell #107 so the two loads agree.
 2. **Retention must cover the id form you emit.** The failed-refresh path keeps prior
    scenes with:
    ```js

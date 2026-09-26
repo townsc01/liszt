@@ -67,8 +67,9 @@ Design the declaration so #107 can register an exact-code matcher without touchi
 
 - **Do not weaken, bypass, or reorder any gate in `src/matching.js`.** The cascade is the
   only admission gate in every pass; passes differ in query breadth, never in the gate.
-  Review watches these files. If a lane identity rule looks weaker than the gate, bring
-  it to the issue rather than implementing it.
+  Review watches these files. If a lane identity rule looks weaker than the gate, record
+  the concern in a comment on the issue and redesign the rule so it is at least as strict.
+  Do not merge a weaker version and do not leave it for a reviewer to catch.
 - A lane matcher may change *which* candidates are considered. It may not admit a
   candidate the gate would reject.
 

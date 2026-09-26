@@ -18,6 +18,7 @@ Land the FC2 lane (fc2cmadb.com, uncensored M/F) as 8 scoped PRs under tracker *
 
 1. **#108 acceptance is re-baselined, not literal row-for-row.** The 318-row seed is a tag-47-only, §3-only cut; #103/#104 add the 8-tag union crawl (§11.5) and the orientation/blocklist filters (§11.1a/§11.2) that were derived *from* those 318 rows. Strict equality is unreachable. #108 instead asserts: every seeded `fc2_video_id` is accounted for with the same keep/exclude reason; kept-minus-documented-blocklist reproduces the ledger buckets; a refreshed union-crawl CSV becomes the live baseline.
 2. **Two parallel tracks, serialised on shared files** (below). `src/catalogue.js`, `src/sync.js`, `src/matching-config.js`, `public/app.js` each have exactly one owner at a time.
+3. **The lane runs unattended.** No human gate, review, or approval. The mayor reviews and merges every PR, resolves every ambiguity, and records the decision as a comment on the issue before continuing; the issue tracker is the record. Dispatchable work orders are in `docs/loads/fc2/`, with the mayor's bootstrap prompt in `docs/loads/fc2/MAYOR-PROMPT.md`. Only three conditions stop the lane rather than proceeding: a failing safety screen or trans/crossdress backstop, an irreversible/destructive git action, or a change that must leave the lane's file ownership.
 
 ## Order
 
