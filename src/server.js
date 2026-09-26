@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readStore } from "./store.js";
 import { sync } from "./sync.js";
 import { enrichStoredCatalogue, validSxyprnUrl } from "./sxyprn.js";
+import { createLinkVerifier, reverifyStoredCatalogue } from "./reverify.js";
 import { createEpornerLookup, createEpornerTrustedPoolLoader } from "./eporner.js";
 import { createVideoProxy } from "./video-proxy.js";
 import sxyprn from "sxyprn";
@@ -114,14 +115,23 @@ export function createLisztServer({ cataloguePath = dataPath, syncCatalogue = ()
   return app;
 }
 
-export const server = createLisztServer({
-  bootSync: true,
-  enrichCatalogue: (options) => enrichStoredCatalogue(dataPath, {
-    ...options,
-    fallbackLookup: createEpornerLookup({ trustedPoolLoader: createEpornerTrustedPoolLoader() }),
-    onProgress: (scene) => console.log(`Playback sources checked ${scene.id}: ${scene.videoUrls?.length || 0} link(s)`),
-  }),
-});
+/**
+ * The production enrichment pass: re-verify the stalest slice of stored links, then run
+ * playback matching. Dead links leave `videoUrls` for `deadVideoUrls`, and a scene whose
+ * last live link died has `videoCheckedAt` cleared, so the matching pass resolves it again.
+ */
+export function createCatalogueEnricher({ path = dataPath, verifyLink = createLinkVerifier(), fallbackLookup, onProgress } = {}) {
+  return async (options = {}) => {
+    await reverifyStoredCatalogue(path, { verify: verifyLink, ...options });
+    return enrichStoredCatalogue(path, {
+      ...options,
+      fallbackLookup: fallbackLookup ?? createEpornerLookup({ trustedPoolLoader: createEpornerTrustedPoolLoader() }),
+      onProgress: onProgress ?? ((scene) => console.log(`Playback sources checked ${scene.id}: ${scene.videoUrls?.length || 0} link(s)`)),
+    });
+  };
+}
+
+export const server = createLisztServer({ bootSync: true, enrichCatalogue: createCatalogueEnricher() });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   // Boot-only cadence for the prototype: a waking instance heals its own catalogue
